@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { LlmProvider } from "./types";
 import { selectPrompt, answerPrompt } from "./prompts";
 
-const MODEL = "gemini-1.5-pro";
+const MODEL = "gemini-2.0-flash";
 
 function model() {
   const key = process.env.GEMINI_API_KEY;
