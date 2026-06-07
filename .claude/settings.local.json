@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head -n 1336 C:/Users/TEST/project_tpc/newsagent_demo/docs/superpowers/plans/2026-06-08-newsagent-demo.md)",
+      "Bash(echo \"new total:\")",
+      "Bash(wc -l)",
+      "Bash(echo \"--- last 3 lines:\")",
+      "Bash(tail -n 3 C:/Users/TEST/project_tpc/newsagent_demo/docs/superpowers/plans/2026-06-08-newsagent-demo.md)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git init *)",
+      "Bash(git symbolic-ref *)",
+      "Bash(git add *)",
+      "Bash(git -c user.name=Claude -c user.email=noreply@anthropic.com commit -q -m 'docs: add demo spec and implementation plan *)",
+      "Bash(git checkout *)"
+    ]
+  }
+}
