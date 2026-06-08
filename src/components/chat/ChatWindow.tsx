@@ -5,7 +5,6 @@ import type { UiMessage } from "./types";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PromptCard } from "./PromptCard";
-import { Masthead } from "./Masthead";
 import { LoadingNote } from "./LoadingNote";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -62,14 +61,20 @@ export function ChatWindow() {
         margin: "0 auto",
         padding: "var(--space-xl) var(--space-md) var(--space-2xl)",
         display: "grid",
-        gridTemplateRows: "auto 1fr auto",
-        gap: "var(--space-2xl)",
+        gridTemplateRows: "1fr auto",
+        gap: "var(--space-lg)",
         minHeight: "calc(100dvh - 64px)",
       }}
     >
-      <Masthead />
-
       <div style={{ display: "grid", gap: "var(--space-lg)", alignContent: "start" }}>
+        {/* sr-only h1 — 시각은 비우고, 페이지 랜드마크는 유지 */}
+        <h1 style={{
+          position: "absolute", width: 1, height: 1, overflow: "hidden",
+          clip: "rect(0 0 0 0)", whiteSpace: "nowrap",
+        }}>
+          신문 에이전트
+        </h1>
+
         {messages.length === 0 && (
           <section aria-label="추천 질문" style={{ display: "grid", gap: "var(--space-sm)" }}>
             <span className="eyebrow">이런 것도 물어보세요</span>
