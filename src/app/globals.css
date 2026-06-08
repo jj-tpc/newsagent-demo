@@ -10,14 +10,15 @@
   --surface:        oklch(0.985 0.005 75);   /* 종이 같은 오프화이트 */
   --surface-2:      oklch(0.96  0.006 75);   /* 살짝 더 진한 패널 */
   --surface-sunken: oklch(0.93  0.008 75);   /* 입력칸/구분 영역 */
-  --surface-code:   oklch(0.20  0.015 60);   /* 로그/코드 박스 (다크 톤) */
+  --surface-quote:  oklch(0.945 0.011 60);   /* 사용자 인용 박스 — 따뜻한 편지지 */
+  --surface-code:   oklch(0.91  0.008 60);   /* 로그/모노 박스 — 편집국 클리프보드 */
 
   /* —— 텍스트 —— */
   --text:           oklch(0.22 0.012 50);    /* 본문. AA 통과 */
   --text-strong:    oklch(0.14 0.015 50);    /* 강조/제목 */
   --text-muted:     oklch(0.46 0.012 50);    /* 보조. 흰배경 4.6:1 */
   --text-on-accent: oklch(0.99 0.005 75);    /* 액센트 위 텍스트 */
-  --text-on-code:   oklch(0.92 0.005 60);    /* 코드 박스 위 */
+  --text-on-code:   oklch(0.30 0.012 50);    /* 코드 박스 위 (라이트 톤 박스에 어둡게) */
 
   /* —— 보더 —— */
   --border:         oklch(0.88 0.008 60);
@@ -26,16 +27,16 @@
   /* —— 액센트 (editorial wine/red) —— */
   --accent:         oklch(0.47 0.16 25);     /* 대비 5.9:1 on surface */
   --accent-hover:   oklch(0.42 0.17 25);
-  --accent-soft:    oklch(0.94 0.04 25);     /* 사용자 말풍선 배경 */
+  --accent-soft:    oklch(0.945 0.018 30);   /* 절제된 와인 워시 (구 챗봇 핑크 대체) */
 
-  /* —— 시맨틱 —— */
-  --info:           oklch(0.50 0.13 240);
+  /* —— 시맨틱 (워밍 시프트로 팔레트 결속) —— */
+  --info:           oklch(0.48 0.11 230);    /* 블루를 살짝 따뜻하게 */
   --success:        oklch(0.48 0.13 150);
   --warning:        oklch(0.55 0.14 70);
-  --danger:         oklch(0.50 0.18 25);
+  --danger:         oklch(0.50 0.17 25);
 
-  /* —— 포커스 —— */
-  --focus-ring:     oklch(0.55 0.18 240 / 0.6);
+  /* —— 포커스 (와인 hue로 통일) —— */
+  --focus-ring:     oklch(0.50 0.17 25 / 0.55);
 
   /* —— 간격 (4pt scale) —— */
   --space-2xs: 4px;
@@ -82,7 +83,8 @@
     --surface:        oklch(0.18 0.008 60);
     --surface-2:      oklch(0.22 0.008 60);
     --surface-sunken: oklch(0.14 0.008 60);
-    --surface-code:   oklch(0.12 0.010 60);
+    --surface-quote:  oklch(0.25 0.025 25);   /* 어두운 와인 워시 (구 다크 핑크 대체) */
+    --surface-code:   oklch(0.12 0.010 60);   /* 다크에선 더 어두운 잉크 */
 
     --text:           oklch(0.93 0.008 60);
     --text-strong:    oklch(0.99 0.005 60);
@@ -93,16 +95,16 @@
     --border:         oklch(0.32 0.010 60);
     --border-strong:  oklch(0.42 0.012 60);
 
-    --accent:         oklch(0.70 0.15 25);
-    --accent-hover:   oklch(0.78 0.15 25);
-    --accent-soft:    oklch(0.32 0.07 25);
+    --accent:         oklch(0.72 0.14 25);
+    --accent-hover:   oklch(0.80 0.14 25);
+    --accent-soft:    oklch(0.30 0.04 25);
 
-    --info:           oklch(0.72 0.12 240);
+    --info:           oklch(0.72 0.10 230);
     --success:        oklch(0.72 0.13 150);
     --warning:        oklch(0.78 0.14 70);
-    --danger:         oklch(0.72 0.17 25);
+    --danger:         oklch(0.72 0.16 25);
 
-    --focus-ring:     oklch(0.75 0.15 240 / 0.7);
+    --focus-ring:     oklch(0.72 0.16 25 / 0.6);
 
     --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
     --shadow-md: 0 6px 18px oklch(0 0 0 / 0.5);

@@ -16,11 +16,13 @@ export function MessageBubble({ msg }: { msg: UiMessage }) {
       <div
         style={{
           maxWidth: "min(640px, 88%)",
-          background: isUser ? "var(--accent-soft)" : "var(--surface-2)",
+          background: isUser ? "var(--surface-quote)" : "var(--surface-2)",
           color: "var(--text)",
           padding: "var(--space-sm) var(--space-md)",
           borderRadius: "var(--radius-lg)",
-          border: isUser ? "none" : "1px solid var(--border)",
+          border: isUser
+            ? "1px solid color-mix(in oklab, var(--accent) 18%, var(--border))"
+            : "1px solid var(--border)",
         }}
       >
         {msg.polishedQuery && <SearchingIndicator query={msg.polishedQuery} />}
