@@ -38,6 +38,7 @@ export function Masthead() {
       }}>
         오늘 모은 기사에서 답을 찾아 드립니다.
       </p>
+      <hr className="hairline--double" style={{ marginTop: "var(--space-xs)" }} />
     </header>
   );
 }

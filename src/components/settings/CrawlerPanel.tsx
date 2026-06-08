@@ -132,13 +132,13 @@ export function CrawlerPanel() {
 
       <div
         style={{
-          display: "grid",
+          display: "flex",
           gap: "var(--space-sm)",
-          gridTemplateColumns: "minmax(0, 1fr) 100px auto",
           alignItems: "end",
+          flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "grid", gap: "var(--space-2xs)", minWidth: 0 }}>
+        <div style={{ display: "grid", gap: "var(--space-2xs)", flex: "2 1 220px", minWidth: 0 }}>
           <label htmlFor={kwId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
             키워드
           </label>
@@ -151,7 +151,7 @@ export function CrawlerPanel() {
             maxLength={50}
           />
         </div>
-        <div style={{ display: "grid", gap: "var(--space-2xs)" }}>
+        <div style={{ display: "grid", gap: "var(--space-2xs)", flex: "0 0 96px" }}>
           <label htmlFor={cntId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
             가져올 기사 수
           </label>
@@ -170,6 +170,7 @@ export function CrawlerPanel() {
           className="btn btn--primary"
           onClick={run}
           disabled={running || !keyword.trim()}
+          style={{ flex: "0 0 auto" }}
         >
           {running ? "가져오는 중…" : "기사 가져오기"}
         </button>

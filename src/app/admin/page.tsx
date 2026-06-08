@@ -46,13 +46,26 @@ export default function AdminPage() {
     >
       <header style={{ display: "grid", gap: "var(--space-2xs)" }}>
         <span className="eyebrow">편집국</span>
-        <h1 style={{ margin: 0 }}>기사 관리</h1>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: "var(--space-md)",
+            flexWrap: "wrap",
+          }}
+        >
+          <h1 style={{ margin: 0 }}>기사 관리</h1>
+          {!editing && !creating && (
+            <span className="numeric eyebrow">총 {articles.length}건</span>
+          )}
+        </div>
         <hr className="hairline" style={{ marginTop: "var(--space-xs)" }} />
       </header>
 
       {!editing && !creating && (
         <>
-          <div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
               + 새 기사
             </button>

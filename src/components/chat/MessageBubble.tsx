@@ -3,14 +3,21 @@ import { InlineMarkdown } from "./InlineMarkdown";
 import { SearchingIndicator } from "./SearchingIndicator";
 import { SourceCard } from "./SourceCard";
 
-export function MessageBubble({ msg }: { msg: UiMessage }) {
+type TopGap = "none" | "sm" | "lg";
+const TOP_GAP: Record<TopGap, string> = {
+  none: "0",
+  sm: "var(--space-sm)",
+  lg: "var(--space-xl)",
+};
+
+export function MessageBubble({ msg, topGap = "sm" }: { msg: UiMessage; topGap?: TopGap }) {
   const isUser = msg.role === "user";
   return (
     <div
       style={{
         display: "flex",
         justifyContent: isUser ? "flex-end" : "flex-start",
-        margin: "var(--space-sm) 0",
+        marginTop: TOP_GAP[topGap],
       }}
     >
       <div

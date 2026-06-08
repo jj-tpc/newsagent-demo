@@ -66,27 +66,35 @@ export function ArticleEditor({ initial, onSaved }: { initial?: Article; onSaved
   }
 
   return (
-    <div style={{ display: "grid", gap: "var(--space-md)", maxWidth: 720 }}>
-      <Field label="ID" htmlFor={articleIdInputId} hint="예: 2026-0001 (YYYY-NNNN)" error={errors.id}>
-        <input
-          id={articleIdInputId}
-          value={a.id}
-          disabled={isEdit}
-          onChange={(e) => setA({ ...a, id: e.target.value })}
-          aria-invalid={errors.id ? true : undefined}
-          aria-describedby={errors.id ? `${articleIdInputId}-err` : undefined}
-          pattern="\d{4}-\d{4}"
-        />
-      </Field>
-      <Field label="제목" htmlFor={titleId} error={errors.title}>
-        <input
-          id={titleId}
-          value={a.title}
-          onChange={(e) => setA({ ...a, title: e.target.value })}
-          aria-invalid={errors.title ? true : undefined}
-          aria-describedby={errors.title ? `${titleId}-err` : undefined}
-        />
-      </Field>
+    <div style={{ display: "grid", gap: "var(--space-md)", maxWidth: "var(--content-narrow)" }}>
+      <div
+        style={{
+          display: "grid",
+          gap: "var(--space-md)",
+          gridTemplateColumns: "minmax(0, 160px) minmax(0, 1fr)",
+        }}
+      >
+        <Field label="ID" htmlFor={articleIdInputId} hint="2026-0001" error={errors.id}>
+          <input
+            id={articleIdInputId}
+            value={a.id}
+            disabled={isEdit}
+            onChange={(e) => setA({ ...a, id: e.target.value })}
+            aria-invalid={errors.id ? true : undefined}
+            aria-describedby={errors.id ? `${articleIdInputId}-err` : undefined}
+            pattern="\d{4}-\d{4}"
+          />
+        </Field>
+        <Field label="제목" htmlFor={titleId} error={errors.title}>
+          <input
+            id={titleId}
+            value={a.title}
+            onChange={(e) => setA({ ...a, title: e.target.value })}
+            aria-invalid={errors.title ? true : undefined}
+            aria-describedby={errors.title ? `${titleId}-err` : undefined}
+          />
+        </Field>
+      </div>
       <Field label="발행일" htmlFor={dateId} hint="YYYY-MM-DD" error={errors.publishedDate}>
         <input
           id={dateId}
@@ -95,6 +103,7 @@ export function ArticleEditor({ initial, onSaved }: { initial?: Article; onSaved
           onChange={(e) => setA({ ...a, publishedDate: e.target.value })}
           aria-invalid={errors.publishedDate ? true : undefined}
           aria-describedby={errors.publishedDate ? `${dateId}-err` : undefined}
+          style={{ maxWidth: 200 }}
         />
       </Field>
       <Field label="본문" htmlFor={bodyId} error={errors.content}>

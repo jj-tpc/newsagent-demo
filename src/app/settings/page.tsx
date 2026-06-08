@@ -168,6 +168,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <hr className="hairline" aria-hidden />
+
       <section style={{ display: "grid", gap: "var(--space-md)" }}>
         <SectionHeader
           title="프롬프트"
@@ -176,7 +178,7 @@ export default function SettingsPage() {
           신문 에이전트가 따르는 두 가지 지시문입니다. 비워두면 기본값이 사용됩니다.
         </SectionHeader>
         {prompts && (
-          <div style={{ display: "grid", gap: "var(--space-lg)" }}>
+          <div style={{ display: "grid", gap: "var(--space-xl)" }}>
             <PromptEditor
               title={PROMPT_TITLES.select}
               description={PROMPT_HINTS.select}
@@ -200,6 +202,8 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+
+      <hr className="hairline" aria-hidden />
 
       <CrawlerPanel />
     </div>

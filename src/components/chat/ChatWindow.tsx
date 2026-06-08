@@ -59,39 +59,41 @@ export function ChatWindow() {
       style={{
         maxWidth: "var(--content-narrow)",
         margin: "0 auto",
-        padding: "var(--space-lg) var(--space-md)",
+        padding: "var(--space-xl) var(--space-md) var(--space-2xl)",
         display: "grid",
-        gap: "var(--space-lg)",
+        gridTemplateRows: "auto 1fr auto",
+        gap: "var(--space-2xl)",
+        minHeight: "calc(100dvh - 64px)",
       }}
     >
       <Masthead />
 
-      <hr className="hairline" />
+      <div style={{ display: "grid", gap: "var(--space-lg)", alignContent: "start" }}>
+        {messages.length === 0 && (
+          <section aria-label="추천 질문" style={{ display: "grid", gap: "var(--space-sm)" }}>
+            <span className="eyebrow">이런 것도 물어보세요</span>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "var(--space-sm)",
+            }}>
+              {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}
+            </div>
+          </section>
+        )}
 
-      {messages.length === 0 && (
-        <section aria-label="추천 질문" style={{ display: "grid", gap: "var(--space-sm)" }}>
-          <span className="eyebrow">이런 것도 물어보세요</span>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "var(--space-sm)",
-          }}>
-            {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}
+        <MessageList messages={messages} />
+
+        {loading && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)" }}
+          >
+            답변 생성 중…
           </div>
-        </section>
-      )}
-
-      <MessageList messages={messages} />
-
-      {loading && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)" }}
-        >
-          답변 생성 중…
-        </div>
-      )}
+        )}
+      </div>
 
       <Composer onSend={send} disabled={loading} />
 
