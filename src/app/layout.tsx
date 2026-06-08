@@ -24,7 +24,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <nav style={{ display: "flex", gap: 16, padding: "12px 16px", borderBottom: "1px solid #eee" }}>
+          <a href="/">Chat</a>
+          <a href="/admin">Admin</a>
+          <a href="/settings">Settings</a>
+        </nav>
+        {children}
+      </body>
     </html>
   );
 }

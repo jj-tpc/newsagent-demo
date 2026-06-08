@@ -1,11 +1,9 @@
 "use client";
 import { useState } from "react";
-import type { ProviderName } from "@/lib/llm/types";
 import type { ChatResult } from "@/lib/chat/orchestrator";
 import type { UiMessage } from "./types";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
-import { ProviderSelector } from "./ProviderSelector";
 import { PromptCard } from "./PromptCard";
 
 const DEMO_PROMPTS = [
@@ -15,7 +13,6 @@ const DEMO_PROMPTS = [
 ];
 
 export function ChatWindow() {
-  const [provider, setProvider] = useState<ProviderName>("anthropic");
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -24,8 +21,9 @@ export function ChatWindow() {
     setLoading(true);
     try {
       const res = await fetch("/api/chat", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question, provider }),
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question }),
       });
       const data = (await res.json()) as ChatResult & { error?: string };
       setMessages((m) => [...m, {
@@ -39,10 +37,7 @@ export function ChatWindow() {
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h2>신문 에이전트</h2>
-        <ProviderSelector value={provider} onChange={setProvider} />
-      </div>
+      <h2>신문 에이전트</h2>
       {messages.length === 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "16px 0" }}>
           {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}

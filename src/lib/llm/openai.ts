@@ -1,8 +1,6 @@
 import OpenAI from "openai";
 import type { LlmProvider } from "./types";
-import { selectPrompt, answerPrompt } from "./prompts";
-
-const MODEL = "gpt-4o";
+import { buildSelectPrompt, buildAnswerPrompt } from "./prompts";
 
 function client() {
   const key = process.env.OPENAI_API_KEY;
@@ -11,11 +9,11 @@ function client() {
 }
 
 export const provider: LlmProvider = {
-  async selectArticles(question, candidates) {
+  async selectArticles(question, candidates, model) {
     const res = await client().chat.completions.create({
-      model: MODEL,
+      model,
       response_format: { type: "json_object" },
-      messages: [{ role: "user", content: selectPrompt(question, candidates) }],
+      messages: [{ role: "user", content: await buildSelectPrompt(question, candidates) }],
     });
     const parsed = JSON.parse(res.choices[0].message.content ?? "{}");
     return {
@@ -23,10 +21,10 @@ export const provider: LlmProvider = {
       selectedIds: parsed.selectedIds ?? [],
     };
   },
-  async answer(question, articles) {
+  async answer(question, articles, model) {
     const res = await client().chat.completions.create({
-      model: MODEL,
-      messages: [{ role: "user", content: answerPrompt(question, articles) }],
+      model,
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles) }],
     });
     return res.choices[0].message.content ?? "";
   },

@@ -1,19 +1,17 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { LlmProvider } from "./types";
-import { selectPrompt, answerPrompt } from "./prompts";
+import { buildSelectPrompt, buildAnswerPrompt } from "./prompts";
 
-const MODEL = "gemini-2.0-flash";
-
-function model() {
+function model(modelId: string) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY not set");
-  return new GoogleGenerativeAI(key).getGenerativeModel({ model: MODEL });
+  return new GoogleGenerativeAI(key).getGenerativeModel({ model: modelId });
 }
 
 export const provider: LlmProvider = {
-  async selectArticles(question, candidates) {
-    const res = await model().generateContent(
-      selectPrompt(question, candidates) + "\n\nJSON만 출력하라.",
+  async selectArticles(question, candidates, modelId) {
+    const res = await model(modelId).generateContent(
+      (await buildSelectPrompt(question, candidates)) + "\n\nJSON만 출력하라.",
     );
     const raw = res.response.text().trim().replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(raw);
@@ -22,8 +20,8 @@ export const provider: LlmProvider = {
       selectedIds: parsed.selectedIds ?? [],
     };
   },
-  async answer(question, articles) {
-    const res = await model().generateContent(answerPrompt(question, articles));
+  async answer(question, articles, modelId) {
+    const res = await model(modelId).generateContent(await buildAnswerPrompt(question, articles));
     return res.response.text();
   },
 };
