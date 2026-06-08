@@ -70,5 +70,9 @@ export async function buildAnswerPrompt(
   return `${body}
 
 [이미지 규칙]
-${imageRule}`;
+${imageRule}
+
+[출력 규칙]
+- 이모지(emoji), 그림문자, 장식용 유니코드 기호(✓ ★ ☆ → ☞ 등)는 사용하지 마라.
+- 마크다운 문법(## 제목, **굵게**, - 목록, [링크](URL) 등)을 그대로 출력하라. 클라이언트가 렌더한다.`;
 }

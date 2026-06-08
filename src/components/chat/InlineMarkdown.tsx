@@ -1,12 +1,14 @@
 "use client";
 import React, { useState } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
 import { ImageLightbox, type LightboxImage } from "./ImageLightbox";
+import { stripEmoji } from "@/lib/chat/strip-emoji";
 
-// 마크다운 inline 처리:
-//  - ![캡션](파일명) 패턴을 추출
-//  - 연속된 이미지(중간에 공백/빈줄만)들은 하나의 <Gallery>로 묶음
-//  - 그 외는 단락 텍스트로 렌더
-//  - 이미지 클릭 → ImageLightbox 확대 보기
+// 처리 흐름:
+//  1) 입력 텍스트에서 이모지를 제거
+//  2) ![캡션](파일명) 토큰을 뽑아내고, 연속 이미지는 <Gallery>로 묶음
+//  3) 나머지 텍스트 블록은 react-markdown으로 렌더 (## 제목 / **bold** / 목록 등)
+//  4) 모든 이미지는 클릭 시 ImageLightbox로 확대
 
 type ImageNode = LightboxImage;
 type Block =
@@ -20,7 +22,8 @@ function resolveSrc(file: string): string {
   return `/api/images/${file.split("/").pop()}`;
 }
 
-function parseBlocks(text: string): Block[] {
+function parseBlocks(raw: string): Block[] {
+  const text = stripEmoji(raw);
   type Token = { kind: "text"; text: string } | { kind: "img"; node: ImageNode };
   const tokens: Token[] = [];
   let last = 0;
@@ -70,19 +73,43 @@ function parseBlocks(text: string): Block[] {
   return blocks;
 }
 
+const MD_COMPONENTS: Components = {
+  // 페이지에 이미 sr-only <h1>이 있으므로 답변 안의 마크다운 헤딩은 한 단계 내려서 렌더
+  h1: (props) => <h2 className="md-h2" {...props} />,
+  h2: (props) => <h2 className="md-h2" {...props} />,
+  h3: (props) => <h3 className="md-h3" {...props} />,
+  h4: (props) => <h4 className="md-h4" {...props} />,
+  p: (props) => <p className="md-p" {...props} />,
+  ul: (props) => <ul className="md-ul" {...props} />,
+  ol: (props) => <ol className="md-ol" {...props} />,
+  li: (props) => <li className="md-li" {...props} />,
+  strong: (props) => <strong className="emph" {...props} />,
+  em: (props) => <em className="md-em" {...props} />,
+  blockquote: (props) => <blockquote className="md-blockquote" {...props} />,
+  code: (props) => <code className="md-code" {...props} />,
+  a: ({ href, ...rest }) => (
+    <a
+      href={href}
+      target={href?.startsWith("http") ? "_blank" : undefined}
+      rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
+      {...rest}
+    />
+  ),
+};
+
 export function InlineMarkdown({ text }: { text: string }) {
   const [lightbox, setLightbox] = useState<ImageNode | null>(null);
   const blocks = parseBlocks(text);
 
   return (
     <>
-      <div>
+      <div className="md-body">
         {blocks.map((b, i) => {
           if (b.kind === "text") {
             return (
-              <span key={i} style={{ whiteSpace: "pre-wrap" }}>
+              <ReactMarkdown key={i} components={MD_COMPONENTS}>
                 {b.text}
-              </span>
+              </ReactMarkdown>
             );
           }
           return <Gallery key={i} images={b.images} onOpen={setLightbox} />;
