@@ -26,6 +26,8 @@ export async function POST(req: Request) {
       try {
         for await (const event of runChatStream({
           question, provider, model, store: articleStore,
+          maxSources: settings.maxSources,
+          maxImages: settings.maxImages,
         })) {
           controller.enqueue(encoder.encode(sse(event.type, event)));
         }

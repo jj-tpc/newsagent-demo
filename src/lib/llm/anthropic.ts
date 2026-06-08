@@ -17,11 +17,11 @@ function text(msg: Message): string {
 }
 
 export const provider: LlmProvider = {
-  async selectArticles(question, candidates, model) {
+  async selectArticles(question, candidates, model, maxSources) {
     const res = await client().messages.create({
       model,
       max_tokens: 1024,
-      messages: [{ role: "user", content: await buildSelectPrompt(question, candidates) }],
+      messages: [{ role: "user", content: await buildSelectPrompt(question, candidates, maxSources) }],
     });
     const raw = text(res).trim().replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(raw);
@@ -30,19 +30,19 @@ export const provider: LlmProvider = {
       selectedIds: parsed.selectedIds ?? [],
     };
   },
-  async answer(question, articles, model) {
+  async answer(question, articles, model, maxImages) {
     const res = await client().messages.create({
       model,
       max_tokens: 2048,
-      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles) }],
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles, maxImages) }],
     });
     return text(res);
   },
-  async *answerStream(question, articles, model) {
+  async *answerStream(question, articles, model, maxImages) {
     const stream = client().messages.stream({
       model,
       max_tokens: 2048,
-      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles) }],
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles, maxImages) }],
     });
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {

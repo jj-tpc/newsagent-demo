@@ -1,10 +1,13 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { ProviderName } from "@/lib/llm/types";
 import type { ModelOption } from "@/lib/llm/models";
 import { ProviderModelPicker } from "@/components/settings/ProviderModelPicker";
 import { PromptEditor } from "@/components/settings/PromptEditor";
 import { CrawlerPanel } from "@/components/settings/CrawlerPanel";
+
+const MAX_SOURCES_RANGE = { min: 1, max: 10 };
+const MAX_IMAGES_RANGE = { min: 0, max: 6 };
 
 type Catalog = Record<ProviderName, ModelOption[]>;
 type PromptState = { text: string; overridden: boolean };
@@ -29,9 +32,15 @@ export default function SettingsPage() {
     anthropic: "", openai: "", gemini: "",
   });
   const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [maxSources, setMaxSources] = useState(3);
+  const [savedMaxSources, setSavedMaxSources] = useState(3);
+  const [maxImages, setMaxImages] = useState(3);
+  const [savedMaxImages, setSavedMaxImages] = useState(3);
   const [prompts, setPrompts] = useState<{ select: PromptState; answer: PromptState } | null>(null);
   const [savedPromptText, setSavedPromptText] = useState<{ select: string; answer: string }>({ select: "", answer: "" });
   const [statusMsg, setStatusMsg] = useState<{ text: string; kind: "success" | "error" } | null>(null);
+  const maxSourcesId = useId();
+  const maxImagesId = useId();
 
   useEffect(() => {
     (async () => {
@@ -40,6 +49,10 @@ export default function SettingsPage() {
       setSavedProvider(s.provider);
       setModels(s.models);
       setSavedModels(s.models);
+      setMaxSources(s.maxSources);
+      setSavedMaxSources(s.maxSources);
+      setMaxImages(s.maxImages);
+      setSavedMaxImages(s.maxImages);
       setCatalog(s.catalog);
       const p = await (await fetch("/api/prompts")).json();
       setPrompts(p);
@@ -51,6 +64,8 @@ export default function SettingsPage() {
     if (provider !== savedProvider) return true;
     return (Object.keys(models) as ProviderName[]).some((p) => models[p] !== savedModels[p]);
   }, [provider, savedProvider, models, savedModels]);
+
+  const limitsDirty = maxSources !== savedMaxSources || maxImages !== savedMaxImages;
 
   function promptDirty(name: PromptName): boolean {
     return !!prompts && prompts[name].text !== savedPromptText[name];
@@ -73,6 +88,23 @@ export default function SettingsPage() {
       setModels(s.models);
       setSavedModels(s.models);
       flashStatus("모델 설정을 저장했습니다.");
+    } catch {
+      flashStatus("저장 중 문제가 발생했습니다.", "error");
+    }
+  }
+
+  async function saveLimits() {
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ maxSources, maxImages }),
+      });
+      const s = await res.json();
+      setMaxSources(s.maxSources);
+      setSavedMaxSources(s.maxSources);
+      setMaxImages(s.maxImages);
+      setSavedMaxImages(s.maxImages);
+      flashStatus("답변 한도를 저장했습니다.");
     } catch {
       flashStatus("저장 중 문제가 발생했습니다.", "error");
     }
@@ -164,6 +196,59 @@ export default function SettingsPage() {
             disabled={!modelDirty}
           >
             모델 설정 저장
+          </button>
+        </div>
+      </section>
+
+      <hr className="hairline" aria-hidden />
+
+      <section style={{ display: "grid", gap: "var(--space-md)" }}>
+        <SectionHeader title="답변 한도" dirty={limitsDirty}>
+          한 답변에 참고할 기사 수와 본문에 포함될 이미지 수의 상한입니다.
+          값이 작을수록 답변이 간결해집니다.
+        </SectionHeader>
+        <div style={{ display: "flex", gap: "var(--space-lg)", flexWrap: "wrap" }}>
+          <div style={{ display: "grid", gap: "var(--space-2xs)", minWidth: 200 }}>
+            <label htmlFor={maxSourcesId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+              참조 기사 수 (1–{MAX_SOURCES_RANGE.max})
+            </label>
+            <input
+              id={maxSourcesId}
+              type="number"
+              min={MAX_SOURCES_RANGE.min}
+              max={MAX_SOURCES_RANGE.max}
+              value={maxSources}
+              onChange={(e) => setMaxSources(
+                Math.max(MAX_SOURCES_RANGE.min, Math.min(MAX_SOURCES_RANGE.max, Number(e.target.value) || MAX_SOURCES_RANGE.min)),
+              )}
+              style={{ maxWidth: 120 }}
+            />
+          </div>
+          <div style={{ display: "grid", gap: "var(--space-2xs)", minWidth: 200 }}>
+            <label htmlFor={maxImagesId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+              이미지 수 ({MAX_IMAGES_RANGE.min}–{MAX_IMAGES_RANGE.max}, 0이면 미사용)
+            </label>
+            <input
+              id={maxImagesId}
+              type="number"
+              min={MAX_IMAGES_RANGE.min}
+              max={MAX_IMAGES_RANGE.max}
+              value={maxImages}
+              onChange={(e) => setMaxImages(
+                Math.max(MAX_IMAGES_RANGE.min, Math.min(MAX_IMAGES_RANGE.max, Number(e.target.value) || 0)),
+              )}
+              style={{ maxWidth: 120 }}
+            />
+          </div>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={saveLimits}
+            disabled={!limitsDirty}
+          >
+            답변 한도 저장
           </button>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import type { Article } from "../articles/types";
-import type { LlmProvider, ArticleContext } from "../llm/types";
+import type { LlmProvider, ArticleContext, ArticleCandidate } from "../llm/types";
+import { makeExcerpt } from "../llm/prompts";
 
 export interface ChatSource {
   id: string;
@@ -17,7 +18,14 @@ interface Deps {
   provider: LlmProvider;
   model: string;
   store: { list(): Promise<Article[]> };
+  /** 답변에 참조할 기사 최대 개수 (LLM에 지시 + 결과 방어적 slice) */
+  maxSources?: number;
+  /** 답변 본문에 포함할 이미지 최대 수 (LLM에 지시) */
+  maxImages?: number;
 }
+
+const FALLBACK_MAX_SOURCES = 3;
+const FALLBACK_MAX_IMAGES = 3;
 
 function toSource(a: Article): ChatSource {
   return { id: a.id, title: a.title, publishedDate: a.publishedDate, images: a.images };
@@ -29,26 +37,33 @@ function toContext(a: Article): ArticleContext {
   };
 }
 
-export async function runChat({ question, provider, model, store }: Deps): Promise<ChatResult> {
-  const all = await store.list();
-  const candidates = all.map((a) => ({ id: a.id, title: a.title, tags: a.tags }));
-  const { polishedQuery, selectedIds } = await provider.selectArticles(question, candidates, model);
+function toCandidate(a: Article): ArticleCandidate {
+  return { id: a.id, title: a.title, tags: a.tags, excerpt: makeExcerpt(a.content) };
+}
 
-  const selected = all.filter((a) => selectedIds.includes(a.id));
+export async function runChat({
+  question, provider, model, store, maxSources, maxImages,
+}: Deps): Promise<ChatResult> {
+  const limitSources = maxSources ?? FALLBACK_MAX_SOURCES;
+  const limitImages = maxImages ?? FALLBACK_MAX_IMAGES;
+  const all = await store.list();
+  const candidates = all.map(toCandidate);
+  const { polishedQuery, selectedIds } = await provider.selectArticles(
+    question, candidates, model, limitSources,
+  );
+
+  const cappedIds = selectedIds.slice(0, limitSources);
+  const selected = all.filter((a) => cappedIds.includes(a.id));
   if (selected.length === 0) {
     return { polishedQuery, answer: "관련 기사를 찾지 못했습니다.", sources: [] };
   }
   const context = selected.map(toContext);
-  const answer = await provider.answer(question, context, model);
+  const answer = await provider.answer(question, context, model, limitImages);
   return { polishedQuery, answer, sources: selected.map(toSource) };
 }
 
 /* ============================================================
    스트리밍 버전 — /api/chat에서 사용
-   - 'meta' 1회: polishedQuery + sources
-   - 'delta' N회: 답변 텍스트 청크
-   - 끝나면 generator return
-   - selectArticles는 구조화 JSON이라 스트리밍 안 함 (먼저 끝나야 sources가 나옴)
    ============================================================ */
 
 export type ChatStreamEvent =
@@ -56,13 +71,18 @@ export type ChatStreamEvent =
   | { type: "delta"; text: string };
 
 export async function* runChatStream({
-  question, provider, model, store,
+  question, provider, model, store, maxSources, maxImages,
 }: Deps): AsyncGenerator<ChatStreamEvent> {
+  const limitSources = maxSources ?? FALLBACK_MAX_SOURCES;
+  const limitImages = maxImages ?? FALLBACK_MAX_IMAGES;
   const all = await store.list();
-  const candidates = all.map((a) => ({ id: a.id, title: a.title, tags: a.tags }));
-  const { polishedQuery, selectedIds } = await provider.selectArticles(question, candidates, model);
+  const candidates = all.map(toCandidate);
+  const { polishedQuery, selectedIds } = await provider.selectArticles(
+    question, candidates, model, limitSources,
+  );
 
-  const selected = all.filter((a) => selectedIds.includes(a.id));
+  const cappedIds = selectedIds.slice(0, limitSources);
+  const selected = all.filter((a) => cappedIds.includes(a.id));
   yield { type: "meta", polishedQuery, sources: selected.map(toSource) };
 
   if (selected.length === 0) {
@@ -72,12 +92,11 @@ export async function* runChatStream({
 
   const context = selected.map(toContext);
   if (provider.answerStream) {
-    for await (const chunk of provider.answerStream(question, context, model)) {
+    for await (const chunk of provider.answerStream(question, context, model, limitImages)) {
       yield { type: "delta", text: chunk };
     }
   } else {
-    // 폴백: 전체 답변을 단일 delta로
-    const text = await provider.answer(question, context, model);
+    const text = await provider.answer(question, context, model, limitImages);
     yield { type: "delta", text };
   }
 }

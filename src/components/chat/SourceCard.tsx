@@ -10,9 +10,7 @@ export function SourceCard({ source }: { source: ChatSource }) {
         display: "block",
         padding: "var(--space-xs)",
         textDecoration: "none",
-        flex: "1 1 180px",
-        minWidth: 160,
-        maxWidth: 240,
+        width: 180,
       }}
     >
       {thumb ? (

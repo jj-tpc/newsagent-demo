@@ -29,15 +29,24 @@ it("renderArticles includes content and image captions", () => {
 });
 
 it("buildSelectPrompt substitutes question and rendered candidates", async () => {
-  const p = await buildSelectPrompt("금리?", [{ id: "a1", title: "금리 인상", tags: ["경제"] }]);
+  const p = await buildSelectPrompt("금리?", [{ id: "a1", title: "금리 인상", tags: ["경제"] }], 3);
   expect(p).toContain("Q=금리?");
   expect(p).toContain("id=a1");
+  expect(p).toContain("3개 이하");
 });
 
 it("buildAnswerPrompt substitutes question and rendered articles", async () => {
   const p = await buildAnswerPrompt("질문", [
     { id: "a1", title: "T", content: "본문", images: [], publishedDate: "2026-06-01" },
-  ]);
+  ], 2);
   expect(p).toContain("Q=질문");
   expect(p).toContain("본문");
+  expect(p).toContain("최대 2장");
+});
+
+it("buildAnswerPrompt forbids images when maxImages=0", async () => {
+  const p = await buildAnswerPrompt("질문", [
+    { id: "a1", title: "T", content: "본문", images: [], publishedDate: "2026-06-01" },
+  ], 0);
+  expect(p).toContain("이미지를 포함하지 마라");
 });
