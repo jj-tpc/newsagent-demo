@@ -1,38 +1,112 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Article } from "@/lib/articles/types";
 import { ArticleTable } from "@/components/admin/ArticleTable";
 import { ArticleEditor } from "@/components/admin/ArticleEditor";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function AdminPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [editing, setEditing] = useState<Article | undefined>(undefined);
   const [creating, setCreating] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Article | null>(null);
 
-  async function load() { setArticles(await (await fetch("/api/articles")).json()); }
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => {
+    fetch("/api/articles").then((r) => r.json()).then(setArticles);
+  }, []);
 
-  async function remove(id: string) {
-    await fetch(`/api/articles/${id}`, { method: "DELETE" });
+  useEffect(() => {
+    fetch("/api/articles").then((r) => r.json()).then(setArticles);
+  }, []);
+
+  function askDelete(id: string) {
+    const target = articles.find((a) => a.id === id);
+    if (target) setPendingDelete(target);
+  }
+
+  async function confirmDelete() {
+    const target = pendingDelete;
+    if (!target) return;
+    setPendingDelete(null);
+    await fetch(`/api/articles/${target.id}`, { method: "DELETE" });
     load();
   }
+
   function afterSave() { setEditing(undefined); setCreating(false); load(); }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
-      <h2>기사 관리</h2>
+    <div
+      style={{
+        maxWidth: "var(--content-wide)",
+        margin: "0 auto",
+        padding: "var(--space-lg) var(--space-md)",
+        display: "grid",
+        gap: "var(--space-lg)",
+      }}
+    >
+      <header style={{ display: "grid", gap: "var(--space-2xs)" }}>
+        <span className="eyebrow">편집국</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: "var(--space-md)",
+            flexWrap: "wrap",
+          }}
+        >
+          <h1 style={{ margin: 0 }}>기사 관리</h1>
+          {!editing && !creating && (
+            <span className="numeric eyebrow">총 {articles.length}건</span>
+          )}
+        </div>
+        <hr className="hairline" aria-hidden style={{ marginTop: "var(--space-xs)" }} />
+      </header>
+
       {!editing && !creating && (
         <>
-          <button onClick={() => setCreating(true)}>+ 새 기사</button>
-          <ArticleTable articles={articles} onEdit={setEditing} onDelete={remove} />
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
+              + 새 기사
+            </button>
+          </div>
+          <ArticleTable articles={articles} onEdit={setEditing} onDelete={askDelete} />
         </>
       )}
       {(editing || creating) && (
         <>
-          <button onClick={() => { setEditing(undefined); setCreating(false); }}>← 목록</button>
+          <div>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={() => { setEditing(undefined); setCreating(false); }}
+            >
+              ← 목록으로
+            </button>
+          </div>
           <ArticleEditor initial={editing} onSaved={afterSave} />
         </>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        variant="danger"
+        title="기사 삭제"
+        body={
+          <>
+            <span className="emph" style={{ color: "var(--text-strong)" }}>
+              「{pendingDelete?.title}」
+            </span>
+            을 삭제하시겠습니까?
+            <br />
+            이 작업은 되돌릴 수 없습니다.
+          </>
+        }
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

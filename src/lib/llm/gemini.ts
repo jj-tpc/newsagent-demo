@@ -9,9 +9,9 @@ function model(modelId: string) {
 }
 
 export const provider: LlmProvider = {
-  async selectArticles(question, candidates, modelId) {
+  async selectArticles(question, candidates, modelId, maxSources) {
     const res = await model(modelId).generateContent(
-      (await buildSelectPrompt(question, candidates)) + "\n\nJSON만 출력하라.",
+      (await buildSelectPrompt(question, candidates, maxSources)) + "\n\nJSON만 출력하라.",
     );
     const raw = res.response.text().trim().replace(/^```json\s*|\s*```$/g, "");
     const parsed = JSON.parse(raw);
@@ -20,8 +20,19 @@ export const provider: LlmProvider = {
       selectedIds: parsed.selectedIds ?? [],
     };
   },
-  async answer(question, articles, modelId) {
-    const res = await model(modelId).generateContent(await buildAnswerPrompt(question, articles));
+  async answer(question, articles, modelId, maxImages) {
+    const res = await model(modelId).generateContent(
+      await buildAnswerPrompt(question, articles, maxImages),
+    );
     return res.response.text();
+  },
+  async *answerStream(question, articles, modelId, maxImages) {
+    const result = await model(modelId).generateContentStream(
+      await buildAnswerPrompt(question, articles, maxImages),
+    );
+    for await (const chunk of result.stream) {
+      const t = chunk.text();
+      if (t) yield t;
+    }
   },
 };

@@ -9,11 +9,11 @@ function client() {
 }
 
 export const provider: LlmProvider = {
-  async selectArticles(question, candidates, model) {
+  async selectArticles(question, candidates, model, maxSources) {
     const res = await client().chat.completions.create({
       model,
       response_format: { type: "json_object" },
-      messages: [{ role: "user", content: await buildSelectPrompt(question, candidates) }],
+      messages: [{ role: "user", content: await buildSelectPrompt(question, candidates, maxSources) }],
     });
     const parsed = JSON.parse(res.choices[0].message.content ?? "{}");
     return {
@@ -21,11 +21,22 @@ export const provider: LlmProvider = {
       selectedIds: parsed.selectedIds ?? [],
     };
   },
-  async answer(question, articles, model) {
+  async answer(question, articles, model, maxImages) {
     const res = await client().chat.completions.create({
       model,
-      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles) }],
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles, maxImages) }],
     });
     return res.choices[0].message.content ?? "";
+  },
+  async *answerStream(question, articles, model, maxImages) {
+    const stream = await client().chat.completions.create({
+      model,
+      stream: true,
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles, maxImages) }],
+    });
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) yield delta;
+    }
   },
 };

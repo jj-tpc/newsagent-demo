@@ -97,6 +97,34 @@ def next_id(target_dir: Path) -> str:
     return f"{year}-{max_n + 1:04d}"
 
 
+# ---------- dedup ----------
+
+def load_existing_source_urls(target_dir: Path) -> set[str]:
+    """target_dir의 기존 *.json 들을 훑어 sourceUrl 집합을 만든다.
+    같은 URL을 다시 크롤링하지 않기 위해 사용."""
+    urls: set[str] = set()
+    if not target_dir.exists():
+        return urls
+    for entry in target_dir.glob("*.json"):
+        if not ID_RE.match(entry.name):
+            continue
+        try:
+            with entry.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            src = data.get("sourceUrl")
+            if isinstance(src, str) and src:
+                urls.add(src)
+        except (OSError, json.JSONDecodeError):
+            continue
+    return urls
+
+
+def _normalize_url(url: str) -> str:
+    """URL을 dedup 키로 정규화 — querystring(?sid=104) 제거, 후행 슬래시 정리."""
+    base = url.split("?", 1)[0].split("#", 1)[0]
+    return base.rstrip("/")
+
+
 # ---------- search ----------
 
 def fetch_search_results(keyword: str, count: int, session: requests.Session, delay: float) -> list[str]:
@@ -205,21 +233,54 @@ def _find_body_container(soup: BeautifulSoup) -> Optional[Tag]:
     return None
 
 
+def _normalize_img_src(img: Tag) -> Optional[str]:
+    """다양한 lazy-load 속성 + 프로토콜 상대 URL을 흡수해서 절대 https URL로."""
+    src = (
+        img.get("data-src")
+        or img.get("data-original")
+        or img.get("data-lazy-src")
+        or img.get("data-lazyload")
+        or img.get("src")
+    )
+    if not src or not isinstance(src, str):
+        return None
+    src = src.strip()
+    if not src or src.startswith("data:"):
+        return None
+    if src.startswith("//"):
+        src = "https:" + src
+    if not src.startswith("http"):
+        return None
+    return src
+
+
+# 포토기사 fallback에서 본문을 캡션으로 채택할 수 있는 최대 본문 길이.
+# 일반 기사(500자+)는 selector 못 찾으면 차라리 이미지를 버린다.
+_PHOTO_BODY_AS_CAPTION_MAX = 350
+
+
 def _extract_captioned_images(body: Tag) -> list[ArticleImage]:
-    out: list[ArticleImage] = []
+    captioned: list[ArticleImage] = []
+    uncaptioned: list[str] = []  # 캡션 못 찾은 이미지의 src 목록 (fallback 대상)
     for img in body.find_all("img"):
-        src = img.get("data-src") or img.get("src")
+        src = _normalize_img_src(img)
         if not src:
             continue
-        if src.startswith("data:"):
-            continue
-        if not src.startswith("http"):
-            continue
         caption = _caption_near(img)
-        if not caption:
-            continue
-        out.append(ArticleImage(src=src, caption=caption))
-    return out
+        if caption:
+            captioned.append(ArticleImage(src=src, caption=caption))
+        else:
+            uncaptioned.append(src)
+
+    # Fallback: "포토기사" 패턴 — 본문 자체가 캡션인 케이스.
+    # 캡션 selector로 잡힌 이미지가 없고, 캡션 없는 이미지가 정확히 1장이며,
+    # 본문 텍스트가 사진 한 줄 설명 정도로 짧으면, 본문을 캡션으로 채택한다.
+    if not captioned and len(uncaptioned) == 1:
+        body_text = body.get_text(" ", strip=True)
+        if body_text and len(body_text) <= _PHOTO_BODY_AS_CAPTION_MAX:
+            captioned.append(ArticleImage(src=uncaptioned[0], caption=body_text))
+
+    return captioned
 
 
 _CAPTION_SELECTORS = ("em.img_desc", "figcaption", "span.end_photo_org_desc")
@@ -411,6 +472,7 @@ def process_one(
         "images": saved_images,
         "publishedDate": raw.published_date,
         "tags": cleaned["tags"],
+        "sourceUrl": _normalize_url(raw.url),
     }
 
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -463,9 +525,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("경고: Naver 자체 호스팅 기사가 검색 결과에 없습니다.")
         return 0
 
+    existing_urls = load_existing_source_urls(target_dir)
+    if existing_urls:
+        print(f"[dedup] 이미 저장된 기사 {len(existing_urls)}건의 URL을 기준으로 중복 제외")
+
     success = 0
     failed = 0
+    skipped = 0
     for url in urls:
+        norm = _normalize_url(url)
+        if norm in existing_urls:
+            print(f"[skip] 이미 저장됨: {url}")
+            skipped += 1
+            continue
         raw = fetch_article(url, session, config.request_delay_sec)
         if raw is None:
             failed += 1
@@ -473,11 +545,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         aid = next_id(target_dir)
         if process_one(raw, aid, target_dir, config, session):
             success += 1
+            existing_urls.add(norm)  # 동일 실행 내에서도 중복 방지
         else:
             failed += 1
 
-    print(f"\n완료: 성공 {success}건, 실패 {failed}건, 저장 위치: {target_dir}")
-    return 0 if success > 0 else 1
+    print(f"\n완료: 성공 {success}건, 실패 {failed}건, 중복 제외 {skipped}건, 저장 위치: {target_dir}")
+    return 0 if success > 0 or skipped > 0 else 1
 
 
 if __name__ == "__main__":
