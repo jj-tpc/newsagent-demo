@@ -1,33 +1,45 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { FileStore } from "../storage/file-store";
+import { getFileStore } from "../storage";
 
 export type PromptName = "select" | "answer";
 
-export function makePromptStore(activeDir: string, defaultsDir: string) {
-  const activeFile = (n: PromptName) => path.join(activeDir, `${n}.md`);
-  const defaultFile = (n: PromptName) => path.join(defaultsDir, `${n}.md`);
+type DefaultsReader = (name: PromptName) => Promise<string>;
+
+const PREFIX = "prompts/";
+const key = (name: PromptName) => `${PREFIX}${name}.md`;
+
+/**
+ * activeStore — 사용자 편집본 저장소 (Blob 또는 LocalFs)
+ * defaultsReader — 번들된 기본 프롬프트 텍스트 fetch (deployment bundle 안)
+ */
+export function makePromptStore(activeStore: FileStore, defaultsReader: DefaultsReader) {
   return {
     async getDefault(name: PromptName): Promise<string> {
-      return fs.readFile(defaultFile(name), "utf8");
+      return defaultsReader(name);
     },
     async isOverridden(name: PromptName): Promise<boolean> {
-      try { await fs.access(activeFile(name)); return true; } catch { return false; }
+      return (await activeStore.readText(key(name))) !== null;
     },
     async get(name: PromptName): Promise<string> {
-      try { return await fs.readFile(activeFile(name), "utf8"); }
-      catch { return fs.readFile(defaultFile(name), "utf8"); }
+      const override = await activeStore.readText(key(name));
+      if (override !== null) return override;
+      return defaultsReader(name);
     },
     async set(name: PromptName, text: string): Promise<void> {
-      await fs.mkdir(activeDir, { recursive: true });
-      await fs.writeFile(activeFile(name), text, "utf8");
+      await activeStore.write(key(name), text, "text/markdown; charset=utf-8");
     },
     async reset(name: PromptName): Promise<void> {
-      try { await fs.unlink(activeFile(name)); } catch { /* already default */ }
+      await activeStore.delete(key(name));
     },
   };
 }
 
-export const promptStore = makePromptStore(
-  path.join(process.cwd(), "data", "prompts"),
-  path.join(process.cwd(), "prompts", "defaults"),
-);
+const PROD_DEFAULTS_DIR = path.join(process.cwd(), "prompts", "defaults");
+
+async function readBundledDefault(name: PromptName): Promise<string> {
+  return fs.readFile(path.join(PROD_DEFAULTS_DIR, `${name}.md`), "utf8");
+}
+
+export const promptStore = makePromptStore(getFileStore(), readBundledDefault);

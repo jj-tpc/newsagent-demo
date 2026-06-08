@@ -1,39 +1,45 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import type { Article } from "./types";
+import type { FileStore } from "../storage/file-store";
+import { getFileStore } from "../storage";
 
-export function makeStore(dir: string) {
-  const file = (id: string) => path.join(dir, `${id}.json`);
+const PREFIX = "articles/";
+
+function key(id: string): string {
+  return `${PREFIX}${id}.json`;
+}
+
+export function makeStore(store: FileStore) {
   return {
     async list(): Promise<Article[]> {
-      await fs.mkdir(dir, { recursive: true });
-      const names = (await fs.readdir(dir)).filter((n) => n.endsWith(".json"));
-      const out = await Promise.all(
-        names.map(async (n) => JSON.parse(await fs.readFile(path.join(dir, n), "utf8")) as Article),
-      );
-      return out.sort((a, b) => b.publishedDate.localeCompare(a.publishedDate));
+      const keys = (await store.list(PREFIX))
+        .filter((k) => k.endsWith(".json") && !k.startsWith(`${PREFIX}images/`));
+      const out = await Promise.all(keys.map(async (k) => {
+        const text = await store.readText(k);
+        return text ? (JSON.parse(text) as Article) : null;
+      }));
+      return out
+        .filter((a): a is Article => a !== null)
+        .sort((a, b) => b.publishedDate.localeCompare(a.publishedDate));
     },
     async get(id: string): Promise<Article | null> {
-      try { return JSON.parse(await fs.readFile(file(id), "utf8")) as Article; }
-      catch { return null; }
+      const text = await store.readText(key(id));
+      return text ? (JSON.parse(text) as Article) : null;
     },
     async create(a: Article): Promise<Article> {
-      await fs.mkdir(dir, { recursive: true });
-      await fs.writeFile(file(a.id), JSON.stringify(a, null, 2), "utf8");
+      await store.write(key(a.id), JSON.stringify(a, null, 2), "application/json");
       return a;
     },
     async update(id: string, patch: Partial<Article>): Promise<Article | null> {
       const cur = await this.get(id);
       if (!cur) return null;
       const next = { ...cur, ...patch, id };
-      await fs.writeFile(file(id), JSON.stringify(next, null, 2), "utf8");
+      await store.write(key(id), JSON.stringify(next, null, 2), "application/json");
       return next;
     },
     async remove(id: string): Promise<void> {
-      try { await fs.unlink(file(id)); } catch { /* already gone */ }
+      await store.delete(key(id));
     },
   };
 }
 
-import { DATA_DIR } from "../../../data.config";
-export const articleStore = makeStore(DATA_DIR);
+export const articleStore = makeStore(getFileStore());
