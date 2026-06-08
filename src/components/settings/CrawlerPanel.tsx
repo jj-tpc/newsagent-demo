@@ -1,9 +1,11 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type ItemStatus = "running" | "done" | "failed" | "skipped";
 type Item = { url: string; status: ItemStatus; savedAs?: string; imageCount?: number };
 type Phase = "idle" | "searching" | "processing" | "done";
+type CrawledStats = { articles: number; images: number };
 
 export function CrawlerPanel() {
   const [keyword, setKeyword] = useState("홍명보");
@@ -14,10 +16,30 @@ export function CrawlerPanel() {
   const [totalExpected, setTotalExpected] = useState<number>(0);
   const [resultLine, setResultLine] = useState<string>("");
   const [logs, setLogs] = useState<string[]>([]);
+  const [crawled, setCrawled] = useState<CrawledStats | null>(null);
+  const [askingClear, setAskingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string>("");
   const logRef = useRef<HTMLPreElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const kwId = useId();
   const cntId = useId();
+
+  const refreshCrawledStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/articles/crawled");
+      if (res.ok) setCrawled(await res.json());
+    } catch { /* 무시 */ }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/articles/crawled")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (!cancelled && data) setCrawled(data); })
+      .catch(() => { /* 무시 */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (logRef.current) {
@@ -113,6 +135,7 @@ export function CrawlerPanel() {
       setRunning(false);
       es.close();
       esRef.current = null;
+      void refreshCrawledStats();
     });
     es.addEventListener("error", () => {
       if (es.readyState === EventSource.CLOSED) return;
@@ -121,21 +144,71 @@ export function CrawlerPanel() {
       setPhase("done");
       es.close();
       esRef.current = null;
+      void refreshCrawledStats();
     });
+  }
+
+  async function confirmClear() {
+    setAskingClear(false);
+    setClearing(true);
+    try {
+      const res = await fetch("/api/articles/crawled", { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { articles, images } = (await res.json()) as CrawledStats;
+      setCrawled({ articles: 0, images: 0 });
+      setStatusMsg(
+        articles === 0
+          ? "삭제할 크롤링 기사가 없었습니다."
+          : `크롤링 기사 ${articles}건과 이미지 ${images}장을 삭제했습니다.`,
+      );
+      setTimeout(() => setStatusMsg(""), 4000);
+    } catch (e) {
+      setStatusMsg(`삭제 중 오류: ${(e as Error).message}`);
+    } finally {
+      setClearing(false);
+    }
   }
 
   const succeeded = items.filter((i) => i.status === "done").length;
   const failed = items.filter((i) => i.status === "failed").length;
   const skipped = items.filter((i) => i.status === "skipped").length;
+  const hasCrawled = (crawled?.articles ?? 0) > 0;
 
   return (
     <section style={{ display: "grid", gap: "var(--space-md)" }}>
-      <h2>뉴스 크롤링</h2>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-md)", flexWrap: "wrap" }}>
+        <h2 style={{ margin: 0 }}>뉴스 크롤링</h2>
+        {crawled && (
+          <span
+            className="eyebrow numeric"
+            aria-label={`크롤링으로 저장된 기사 ${crawled.articles}건`}
+          >
+            크롤링 기사 {crawled.articles}건
+          </span>
+        )}
+      </div>
       <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0, maxWidth: "60ch" }}>
         키워드로 네이버 모바일 뉴스 검색 결과 중 네이버 자체 호스팅 기사를 가져와
         본문을 정리하고 태그를 붙여 저장합니다. 가져온 기사는 곧바로
         <a href="/admin" style={{ marginLeft: "0.25em" }}>기사 관리</a> 목록에 추가됩니다.
       </p>
+
+      {statusMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            fontSize: "var(--text-sm)",
+            color: "var(--text-muted)",
+            padding: "var(--space-xs) var(--space-sm)",
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)",
+          }}
+        >
+          {statusMsg}
+        </div>
+      )}
 
       <div
         style={{
@@ -180,6 +253,21 @@ export function CrawlerPanel() {
           style={{ flex: "0 0 auto" }}
         >
           {running ? "가져오는 중…" : "기사 가져오기"}
+        </button>
+      </div>
+
+      {/* 크롤링 기록 초기화 */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-md)", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+          크롤링으로 저장한 기사{hasCrawled ? `(${crawled?.articles}건, 이미지 ${crawled?.images}장)` : ""}를 한번에 비울 수 있습니다.
+        </span>
+        <button
+          type="button"
+          className="btn btn--danger btn--sm"
+          onClick={() => setAskingClear(true)}
+          disabled={!hasCrawled || running || clearing}
+        >
+          {clearing ? "삭제 중…" : "크롤링 기록 초기화"}
         </button>
       </div>
 
@@ -253,6 +341,27 @@ export function CrawlerPanel() {
           {logs.length === 0 ? "아직 실행 기록이 없습니다." : logs.join("\n")}
         </pre>
       </details>
+
+      <ConfirmDialog
+        open={askingClear}
+        variant="danger"
+        title="크롤링 기록 초기화"
+        body={
+          <>
+            크롤러가 가져온 기사{" "}
+            <span className="emph" style={{ color: "var(--text-strong)" }}>
+              {crawled?.articles ?? 0}건
+            </span>
+            과 첨부 이미지를 모두 삭제합니다.
+            <br />
+            직접 추가한 기사는 영향받지 않습니다. 이 작업은 되돌릴 수 없습니다.
+          </>
+        }
+        confirmLabel="모두 삭제"
+        cancelLabel="취소"
+        onConfirm={confirmClear}
+        onCancel={() => setAskingClear(false)}
+      />
     </section>
   );
 }
