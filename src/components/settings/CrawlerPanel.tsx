@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 
-type ItemStatus = "running" | "done" | "failed";
+type ItemStatus = "running" | "done" | "failed" | "skipped";
 type Item = { url: string; status: ItemStatus; savedAs?: string; imageCount?: number };
 type Phase = "idle" | "searching" | "processing" | "done";
 
@@ -42,6 +42,11 @@ export function CrawlerPanel() {
     if (found) {
       setPhase("processing");
       setTotalExpected(Number(found[1]));
+      return;
+    }
+    const skipM = line.match(/\[skip\] 이미 저장됨: (\S+)/);
+    if (skipM) {
+      setItems((prev) => [...prev, { url: skipM[1], status: "skipped" }]);
       return;
     }
     const fetchM = line.match(/\[article\] GET (\S+)/);
@@ -121,6 +126,7 @@ export function CrawlerPanel() {
 
   const succeeded = items.filter((i) => i.status === "done").length;
   const failed = items.filter((i) => i.status === "failed").length;
+  const skipped = items.filter((i) => i.status === "skipped").length;
 
   return (
     <section style={{ display: "grid", gap: "var(--space-md)" }}>
@@ -190,7 +196,14 @@ export function CrawlerPanel() {
             background: "var(--surface-2)",
           }}
         >
-          <ProgressHeader phase={phase} succeeded={succeeded} failed={failed} total={totalExpected} resultLine={resultLine} />
+          <ProgressHeader
+            phase={phase}
+            succeeded={succeeded}
+            failed={failed}
+            skipped={skipped}
+            total={totalExpected}
+            resultLine={resultLine}
+          />
           {items.length > 0 && (
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "var(--space-2xs)" }}>
               {items.map((it, i) => (
@@ -245,18 +258,18 @@ export function CrawlerPanel() {
 }
 
 function ProgressHeader({
-  phase, succeeded, failed, total, resultLine,
+  phase, succeeded, failed, skipped, total, resultLine,
 }: {
-  phase: Phase; succeeded: number; failed: number; total: number; resultLine: string;
+  phase: Phase; succeeded: number; failed: number; skipped: number; total: number; resultLine: string;
 }) {
   if (phase === "searching") {
     return <strong style={{ fontFamily: "var(--font-display)" }}>검색 결과를 가져오는 중…</strong>;
   }
   if (phase === "processing") {
-    const total_ = total || succeeded + failed;
+    const total_ = total || succeeded + failed + skipped;
     return (
       <strong style={{ fontFamily: "var(--font-display)" }}>
-        진행 중 · {succeeded + failed}/{total_}
+        진행 중 · {succeeded + failed + skipped}/{total_}
         {failed > 0 && (
           <span style={{ color: "var(--danger)", marginLeft: "var(--space-xs)", fontSize: "var(--text-sm)" }}>
             실패 {failed}
@@ -269,7 +282,9 @@ function ProgressHeader({
     return (
       <div style={{ display: "grid", gap: "var(--space-2xs)" }}>
         <strong style={{ fontFamily: "var(--font-display)" }}>
-          완료 · 성공 {succeeded}건 {failed > 0 && `· 실패 ${failed}건`}
+          완료 · 성공 {succeeded}건
+          {failed > 0 && ` · 실패 ${failed}건`}
+          {skipped > 0 && ` · 중복 ${skipped}건`}
         </strong>
         {resultLine && (
           <span className="numeric" style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
@@ -286,12 +301,14 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
   running: "가져오는 중",
   done: "저장 완료",
   failed: "실패",
+  skipped: "이미 저장됨",
 };
 
 function ProgressRow({ index, item }: { index: number; item: Item }) {
   const mark =
     item.status === "done" ? "✓" :
     item.status === "failed" ? "✕" :
+    item.status === "skipped" ? "—" :
     "⋯";
   const color =
     item.status === "done" ? "var(--success)" :

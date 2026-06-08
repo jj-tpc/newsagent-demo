@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { ChatResult } from "@/lib/chat/orchestrator";
+import type { ChatSource } from "@/lib/chat/orchestrator";
+import { readSse } from "@/lib/chat/sse-client";
 import type { UiMessage } from "./types";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
@@ -37,22 +38,58 @@ export function ChatWindow() {
   }, []);
 
   async function send(question: string) {
-    setMessages((m) => [...m, { role: "user", text: question }]);
+    setMessages((m) => [
+      ...m,
+      { role: "user", text: question },
+      { role: "assistant", text: "" }, // 자리 잡고 스트림으로 채움
+    ]);
     setLoading(true);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question }),
       });
-      const data = (await res.json()) as ChatResult & { error?: string };
-      setMessages((m) => [...m, {
-        role: "assistant",
-        text: data.error ? `오류: ${data.error}` : data.answer,
-        polishedQuery: data.polishedQuery,
-        sources: data.sources,
-      }]);
-    } finally { setLoading(false); }
+      if (!res.ok || !res.body) {
+        const msg = res.ok ? "응답 본문이 없습니다." : `오류 ${res.status}`;
+        patchAssistant({ text: msg });
+        return;
+      }
+
+      let assistantText = "";
+      for await (const ev of readSse(res.body)) {
+        if (ev.event === "meta") {
+          const meta = JSON.parse(ev.data) as { polishedQuery: string; sources: ChatSource[] };
+          patchAssistant({ polishedQuery: meta.polishedQuery, sources: meta.sources });
+        } else if (ev.event === "delta") {
+          const { text } = JSON.parse(ev.data) as { text: string };
+          assistantText += text;
+          patchAssistant({ text: assistantText });
+        } else if (ev.event === "error") {
+          const { message } = JSON.parse(ev.data) as { message: string };
+          patchAssistant({ text: `오류: ${message}` });
+          break;
+        } else if (ev.event === "done") {
+          break;
+        }
+      }
+    } catch (e) {
+      patchAssistant({ text: `오류: ${(e as Error).message}` });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function patchAssistant(patch: Partial<UiMessage>) {
+    setMessages((m) => {
+      if (m.length === 0) return m;
+      const next = [...m];
+      const last = next[next.length - 1];
+      if (last.role !== "assistant") return m;
+      next[next.length - 1] = { ...last, ...patch };
+      return next;
+    });
   }
 
   return (
@@ -93,7 +130,9 @@ export function ChatWindow() {
 
         <MessageList messages={messages} />
 
-        {loading && <LoadingNote />}
+        {/* 답변 첫 토큰이 도착하기 전까지만 안내 */}
+        {loading && messages[messages.length - 1]?.role === "assistant"
+          && messages[messages.length - 1]?.text === "" && <LoadingNote />}
       </div>
 
       <Composer onSend={send} disabled={loading} />

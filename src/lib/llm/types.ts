@@ -21,4 +21,6 @@ export interface LlmProvider {
   selectArticles(question: string, candidates: ArticleCandidate[], model: string): Promise<SelectResult>;
   // 2단계: 선택된 기사 전문으로 답변 생성 (마크다운 텍스트)
   answer(question: string, articles: ArticleContext[], model: string): Promise<string>;
+  // 2단계 스트리밍 변형. 구현하지 않은 provider는 answer()로 폴백.
+  answerStream?(question: string, articles: ArticleContext[], model: string): AsyncIterable<string>;
 }

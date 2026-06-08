@@ -38,4 +38,16 @@ export const provider: LlmProvider = {
     });
     return text(res);
   },
+  async *answerStream(question, articles, model) {
+    const stream = client().messages.stream({
+      model,
+      max_tokens: 2048,
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles) }],
+    });
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        yield event.delta.text;
+      }
+    }
+  },
 };

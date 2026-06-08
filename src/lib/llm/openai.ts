@@ -28,4 +28,15 @@ export const provider: LlmProvider = {
     });
     return res.choices[0].message.content ?? "";
   },
+  async *answerStream(question, articles, model) {
+    const stream = await client().chat.completions.create({
+      model,
+      stream: true,
+      messages: [{ role: "user", content: await buildAnswerPrompt(question, articles) }],
+    });
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) yield delta;
+    }
+  },
 };

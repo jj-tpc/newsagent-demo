@@ -24,4 +24,11 @@ export const provider: LlmProvider = {
     const res = await model(modelId).generateContent(await buildAnswerPrompt(question, articles));
     return res.response.text();
   },
+  async *answerStream(question, articles, modelId) {
+    const result = await model(modelId).generateContentStream(await buildAnswerPrompt(question, articles));
+    for await (const chunk of result.stream) {
+      const t = chunk.text();
+      if (t) yield t;
+    }
+  },
 };

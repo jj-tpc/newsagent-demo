@@ -97,6 +97,34 @@ def next_id(target_dir: Path) -> str:
     return f"{year}-{max_n + 1:04d}"
 
 
+# ---------- dedup ----------
+
+def load_existing_source_urls(target_dir: Path) -> set[str]:
+    """target_dir의 기존 *.json 들을 훑어 sourceUrl 집합을 만든다.
+    같은 URL을 다시 크롤링하지 않기 위해 사용."""
+    urls: set[str] = set()
+    if not target_dir.exists():
+        return urls
+    for entry in target_dir.glob("*.json"):
+        if not ID_RE.match(entry.name):
+            continue
+        try:
+            with entry.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            src = data.get("sourceUrl")
+            if isinstance(src, str) and src:
+                urls.add(src)
+        except (OSError, json.JSONDecodeError):
+            continue
+    return urls
+
+
+def _normalize_url(url: str) -> str:
+    """URL을 dedup 키로 정규화 — querystring(?sid=104) 제거, 후행 슬래시 정리."""
+    base = url.split("?", 1)[0].split("#", 1)[0]
+    return base.rstrip("/")
+
+
 # ---------- search ----------
 
 def fetch_search_results(keyword: str, count: int, session: requests.Session, delay: float) -> list[str]:
@@ -411,6 +439,7 @@ def process_one(
         "images": saved_images,
         "publishedDate": raw.published_date,
         "tags": cleaned["tags"],
+        "sourceUrl": _normalize_url(raw.url),
     }
 
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -463,9 +492,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("경고: Naver 자체 호스팅 기사가 검색 결과에 없습니다.")
         return 0
 
+    existing_urls = load_existing_source_urls(target_dir)
+    if existing_urls:
+        print(f"[dedup] 이미 저장된 기사 {len(existing_urls)}건의 URL을 기준으로 중복 제외")
+
     success = 0
     failed = 0
+    skipped = 0
     for url in urls:
+        norm = _normalize_url(url)
+        if norm in existing_urls:
+            print(f"[skip] 이미 저장됨: {url}")
+            skipped += 1
+            continue
         raw = fetch_article(url, session, config.request_delay_sec)
         if raw is None:
             failed += 1
@@ -473,11 +512,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         aid = next_id(target_dir)
         if process_one(raw, aid, target_dir, config, session):
             success += 1
+            existing_urls.add(norm)  # 동일 실행 내에서도 중복 방지
         else:
             failed += 1
 
-    print(f"\n완료: 성공 {success}건, 실패 {failed}건, 저장 위치: {target_dir}")
-    return 0 if success > 0 else 1
+    print(f"\n완료: 성공 {success}건, 실패 {failed}건, 중복 제외 {skipped}건, 저장 위치: {target_dir}")
+    return 0 if success > 0 or skipped > 0 else 1
 
 
 if __name__ == "__main__":
