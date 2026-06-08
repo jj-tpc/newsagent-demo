@@ -87,12 +87,7 @@ export class LocalFsFileStore implements FileStore {
     return out.sort();
   }
 
-  publicUrl(key: string): string {
-    // 이미지만 외부 노출. 다른 키는 라우트가 없으니 그냥 키 반환.
-    if (key.startsWith("articles/images/")) {
-      const basename = key.slice("articles/images/".length);
-      return `/api/images/${basename}`;
-    }
-    return key;
+  async externalUrl(_key: string): Promise<string | null> { // eslint-disable-line @typescript-eslint/no-unused-vars
+    return null; // LocalFs는 외부 URL이 없음 — 호출자가 readBuffer로 stream
   }
 }

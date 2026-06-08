@@ -17,9 +17,9 @@ export interface FileStore {
   /** prefix 로 시작하는 모든 키 (재귀). 빈 prefix 면 전체 root 스캔. */
   list(prefix: string): Promise<string[]>;
   /**
-   * 이 키를 브라우저에서 직접 접근할 수 있는 URL.
-   * - LocalFs: /api/images/<basename> 같은 앱 라우트 경로
-   * - VercelBlob: Blob CDN public URL
+   * 브라우저가 직접 다운로드할 수 있는 외부 URL.
+   * - LocalFs: null (이 경우 호출자가 readBuffer로 스트리밍)
+   * - VercelBlob: Blob CDN의 public URL (호출자가 302 redirect 가능)
    */
-  publicUrl(key: string): string;
+  externalUrl(key: string): Promise<string | null>;
 }

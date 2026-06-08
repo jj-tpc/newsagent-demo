@@ -10,8 +10,17 @@ const TYPES: Record<string, string> = {
 export async function GET(_: Request, { params }: Ctx) {
   const { filename } = await params;
   const safe = path.basename(filename); // 경로 탈출 방지
+  const key = `articles/images/${safe}`;
   const store = getFileStore();
-  const buf = await store.readBuffer(`articles/images/${safe}`);
+
+  // Blob 백엔드면 CDN URL로 302 → 함수 시간 + 트래픽 절약
+  const external = await store.externalUrl(key);
+  if (external) {
+    return NextResponse.redirect(external, 302);
+  }
+
+  // LocalFs — bytes 직접 stream
+  const buf = await store.readBuffer(key);
   if (!buf) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
