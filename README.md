@@ -53,6 +53,28 @@ Vercel 프로젝트 설정 → Environment Variables 에서 다음을 모두 채
 - 가져온 기사는 곧바로 `/admin`에 노출됩니다.
 - 크롤러는 동일 URL을 자동으로 dedup 합니다 — 같은 키워드를 두 번 돌려도 중복 저장 안 됨.
 
+### 3-2. 로컬 데이터 일괄 업로드 (선택)
+
+이미 로컬에서 `data/articles/`에 크롤링 결과가 쌓여있다면, 함수 한도와 무관하게 한 번에 Blob에 올릴 수 있습니다:
+
+```powershell
+# Windows PowerShell
+$env:BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_..."
+npm run upload-articles
+```
+
+```bash
+# Mac/Linux
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..." npm run upload-articles
+```
+
+옵션:
+- `--dry-run` — 실제 업로드 없이 어떤 파일이 올라갈지만 출력
+- `--skip-existing` — Blob에 같은 key가 이미 있으면 건너뜀
+- `--only=2026-0[1-2]*.json` — glob 패턴(`*` 만 지원)으로 일부만
+
+`BLOB_READ_WRITE_TOKEN`은 Vercel 프로젝트 → Storage → 만든 Blob bucket → **".env.local Tab"** 에서 복사할 수 있습니다.
+
 ### 한도 / 비용
 
 - **Vercel Function**: Hobby tier 60초 → 안전한 크롤 개수 1~7건
