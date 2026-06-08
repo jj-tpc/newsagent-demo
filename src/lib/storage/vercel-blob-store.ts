@@ -1,4 +1,4 @@
-import { put, del, list, head } from "@vercel/blob";
+import { put, del, list, head, BlobNotFoundError } from "@vercel/blob";
 import type { FileStore } from "./file-store";
 
 /**
@@ -91,12 +91,15 @@ export class VercelBlobFileStore implements FileStore {
 }
 
 function isBlobNotFound(e: unknown): boolean {
-  // @vercel/blob 의 BlobNotFoundError 타입을 의존성 없이 detect
+  // 1차: instanceof — 프로토타입 체인 기반이라 프로덕션 minify 에도 안전하다.
+  //   (@vercel/blob 의 BlobError 계열은 this.name 을 세팅하지 않아서 e.name 은 항상 "Error".
+  //    constructor.name 도 번들 minify 로 mangle 되므로 둘 다 신뢰할 수 없다.)
+  if (e instanceof BlobNotFoundError) return true;
+  // 2차 fallback: 메시지 매칭. 모듈 인스턴스 중복 등으로 instanceof 가 빗나갈 경우 대비.
+  //   실제 메시지: "Vercel Blob: The requested blob does not exist".
   if (e && typeof e === "object") {
-    const name = (e as { name?: string }).name;
-    if (name === "BlobNotFoundError") return true;
     const msg = (e as { message?: string }).message ?? "";
-    if (/not found/i.test(msg) && /blob/i.test(msg)) return true;
+    if (/blob/i.test(msg) && /(not found|does not exist)/i.test(msg)) return true;
   }
   return false;
 }
