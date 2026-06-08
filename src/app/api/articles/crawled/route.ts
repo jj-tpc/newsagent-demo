@@ -1,8 +1,6 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { articleStore } from "@/lib/articles/store";
-import { IMAGES_DIR } from "../../../../../data.config";
+import { getFileStore } from "@/lib/storage";
 
 /** 크롤러가 만든 기사만 ( sourceUrl 이 있는 것 ) 추려 반환 */
 async function listCrawled() {
@@ -17,12 +15,13 @@ export async function GET() {
 }
 
 export async function DELETE() {
+  const fs = getFileStore();
   const crawled = await listCrawled();
   let imageRemoved = 0;
   for (const a of crawled) {
     for (const img of a.images) {
       try {
-        await fs.unlink(path.join(IMAGES_DIR, img.filename));
+        await fs.delete(`articles/images/${img.filename}`);
         imageRemoved += 1;
       } catch {
         // 이미 없거나 다른 기사가 공유 — 무시

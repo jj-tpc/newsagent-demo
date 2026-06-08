@@ -1,5 +1,5 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import type { FileStore } from "../storage/file-store";
+import { getFileStore } from "../storage";
 import type { ProviderName } from "../llm/types";
 import { MODEL_CATALOG, DEFAULT_PROVIDER, DEFAULT_MODELS } from "../llm/models";
 
@@ -18,6 +18,8 @@ export const MAX_SOURCES_RANGE = { min: 1, max: 10 } as const;
 export const MAX_IMAGES_RANGE = { min: 0, max: 6 } as const;
 export const DEFAULT_MAX_SOURCES = 3;
 export const DEFAULT_MAX_IMAGES = 3;
+
+const SETTINGS_KEY = "config/settings.json";
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
@@ -53,15 +55,13 @@ function normalize(raw: Partial<Settings> | null | undefined): Settings {
   };
 }
 
-export function makeSettingsStore(file: string) {
+export function makeSettingsStore(fileStore: FileStore, key: string = SETTINGS_KEY) {
   return {
     async get(): Promise<Settings> {
-      try {
-        const raw = JSON.parse(await fs.readFile(file, "utf8")) as Partial<Settings>;
-        return normalize(raw);
-      } catch {
-        return normalize(null);
-      }
+      const text = await fileStore.readText(key);
+      if (!text) return normalize(null);
+      try { return normalize(JSON.parse(text) as Partial<Settings>); }
+      catch { return normalize(null); }
     },
     async save(patch: Partial<Settings>): Promise<Settings> {
       const cur = await this.get();
@@ -71,13 +71,10 @@ export function makeSettingsStore(file: string) {
         maxSources: patch.maxSources ?? cur.maxSources,
         maxImages: patch.maxImages ?? cur.maxImages,
       });
-      await fs.mkdir(path.dirname(file), { recursive: true });
-      await fs.writeFile(file, JSON.stringify(merged, null, 2), "utf8");
+      await fileStore.write(key, JSON.stringify(merged, null, 2), "application/json");
       return merged;
     },
   };
 }
 
-export const settingsStore = makeSettingsStore(
-  path.join(process.cwd(), "data", "config", "settings.json"),
-);
+export const settingsStore = makeSettingsStore(getFileStore());

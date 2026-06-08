@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
 import path from "node:path";
-import { IMAGES_DIR } from "../../../../data.config";
+import { getFileStore } from "@/lib/storage";
+
+const TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif",
+};
 
 export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "file required" }, { status: 400 });
-  await fs.mkdir(IMAGES_DIR, { recursive: true });
   const safe = path.basename(file.name);
-  await fs.writeFile(path.join(IMAGES_DIR, safe), new Uint8Array(await file.arrayBuffer()));
+  const ext = path.extname(safe).toLowerCase();
+  const contentType = TYPES[ext] ?? file.type ?? "application/octet-stream";
+  const buf = await file.arrayBuffer();
+  await getFileStore().write(`articles/images/${safe}`, buf, contentType);
   return NextResponse.json({ filename: safe });
 }
