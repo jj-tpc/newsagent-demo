@@ -23,7 +23,7 @@ export function MessageBubble({ msg, topGap = "sm" }: { msg: UiMessage; topGap?:
     >
       <div
         style={{
-          maxWidth: "min(640px, 88%)",
+          maxWidth: "min(760px, 88%)",
           background: isUser ? "var(--surface-quote)" : "var(--surface-2)",
           color: "var(--text)",
           padding: "var(--space-sm) var(--space-md)",

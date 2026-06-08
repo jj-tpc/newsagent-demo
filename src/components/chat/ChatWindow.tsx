@@ -95,7 +95,7 @@ export function ChatWindow() {
   return (
     <div
       style={{
-        maxWidth: "var(--content-narrow)",
+        maxWidth: "var(--content-wide)",
         margin: "0 auto",
         padding: "var(--space-lg) var(--space-md) var(--space-2xl)",
         display: "grid",
