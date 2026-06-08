@@ -5,6 +5,7 @@ import type { UiMessage } from "./types";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PromptCard } from "./PromptCard";
+import { Masthead } from "./Masthead";
 
 const DEMO_PROMPTS = [
   "최근 금리 인상이 가계에 미치는 영향은?",
@@ -51,12 +52,9 @@ export function ChatWindow() {
         gap: "var(--space-lg)",
       }}
     >
-      <header>
-        <h1>신문 에이전트</h1>
-        <p style={{ color: "var(--text-muted)", marginTop: "var(--space-2xs)" }}>
-          오늘 모은 기사에서 답을 찾아드립니다.
-        </p>
-      </header>
+      <Masthead />
+
+      <hr className="hairline" />
 
       {messages.length === 0 && (
         <section aria-label="추천 질문" style={{

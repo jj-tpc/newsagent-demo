@@ -36,18 +36,18 @@ export function SourceCard({ source }: { source: ChatSource }) {
         style={{
           fontFamily: "var(--font-display)",
           fontWeight: 700,
+          fontSize: "var(--text-base)",
+          letterSpacing: "-0.01em",
           marginTop: "var(--space-xs)",
-          lineHeight: 1.3,
+          lineHeight: 1.35,
+          color: "var(--text-strong)",
         }}
       >
         {source.title}
       </div>
       <div
-        style={{
-          fontSize: "var(--text-xs)",
-          color: "var(--text-muted)",
-          marginTop: "var(--space-2xs)",
-        }}
+        className="eyebrow numeric"
+        style={{ marginTop: "var(--space-2xs)" }}
       >
         {source.publishedDate}
       </div>

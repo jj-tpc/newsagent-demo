@@ -15,7 +15,13 @@ export function PromptEditor({
   return (
     <div style={{ display: "grid", gap: "var(--space-xs)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-sm)" }}>
-        <label htmlFor={id} style={{ fontWeight: 700, color: "var(--text-strong)" }}>
+        <label htmlFor={id} style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: "var(--text-lg)",
+          color: "var(--text-strong)",
+          letterSpacing: "-0.01em",
+        }}>
           {title}
         </label>
         <span

@@ -33,8 +33,10 @@ export default function AdminPage() {
         gap: "var(--space-lg)",
       }}
     >
-      <header>
-        <h1>기사 관리</h1>
+      <header style={{ display: "grid", gap: "var(--space-2xs)" }}>
+        <span className="eyebrow">편집국</span>
+        <h1 style={{ margin: 0 }}>기사 관리</h1>
+        <hr className="hairline" style={{ marginTop: "var(--space-xs)" }} />
       </header>
 
       {!editing && !creating && (

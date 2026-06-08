@@ -69,8 +69,10 @@ export default function SettingsPage() {
         gap: "var(--space-2xl)",
       }}
     >
-      <header>
-        <h1>설정</h1>
+      <header style={{ display: "grid", gap: "var(--space-2xs)" }}>
+        <span className="eyebrow">에디터 도구</span>
+        <h1 style={{ margin: 0 }}>설정</h1>
+        <hr className="hairline" style={{ marginTop: "var(--space-xs)" }} />
       </header>
 
       {savedMsg && (

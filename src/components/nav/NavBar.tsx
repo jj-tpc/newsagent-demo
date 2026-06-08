@@ -157,19 +157,31 @@ export function NavBar() {
                   onClick={() => go(it.href)}
                   tabIndex={i === activeIndex ? 0 : -1}
                   style={{
-                    display: "block",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-2xs)",
                     width: "100%",
                     minHeight: 44,
                     textAlign: "left",
                     padding: "0 var(--space-sm)",
                     border: "none",
                     background: isCurrent ? "var(--surface-2)" : "transparent",
-                    color: "var(--text)",
-                    fontWeight: isCurrent ? 700 : 400,
+                    color: isCurrent ? "var(--accent)" : "var(--text)",
                     borderRadius: "var(--radius-sm)",
                     cursor: "pointer",
                   }}
                 >
+                  <span
+                    aria-hidden
+                    style={{
+                      display: "inline-block",
+                      width: 8,
+                      color: "var(--accent)",
+                      opacity: isCurrent ? 1 : 0,
+                    }}
+                  >
+                    ▸
+                  </span>
                   {it.label}
                 </button>
               );

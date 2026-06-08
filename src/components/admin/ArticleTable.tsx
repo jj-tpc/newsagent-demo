@@ -38,8 +38,8 @@ export function ArticleTable({ articles, onEdit, onDelete }: {
         <tbody>
           {articles.map((a) => (
             <tr key={a.id} style={{ borderTop: "1px solid var(--border)" }}>
-              <td style={{ ...tdStyle, fontWeight: 600 }}>{a.title}</td>
-              <td style={{ ...tdStyle, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{a.publishedDate}</td>
+              <td style={{ ...tdStyle, fontFamily: "var(--font-display)", fontWeight: 700, color: "var(--text-strong)" }}>{a.title}</td>
+              <td className="numeric" style={{ ...tdStyle, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{a.publishedDate}</td>
               <td style={{ ...tdStyle, color: "var(--text-muted)" }}>{a.tags.join(", ")}</td>
               <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                 <div style={{ display: "inline-flex", gap: "var(--space-2xs)" }}>
@@ -72,8 +72,12 @@ export function ArticleTable({ articles, onEdit, onDelete }: {
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "var(--space-sm) var(--space-md)",
+  fontFamily: "var(--font-display)",
   fontWeight: 700,
-  color: "var(--text-strong)",
+  fontSize: "var(--text-sm)",
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
 };
 const tdStyle: React.CSSProperties = {
   padding: "var(--space-sm) var(--space-md)",
