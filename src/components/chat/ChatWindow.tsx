@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChatResult } from "@/lib/chat/orchestrator";
 import type { UiMessage } from "./types";
 import { MessageList } from "./MessageList";
@@ -15,6 +15,12 @@ const DEMO_PROMPTS = [
 export function ChatWindow() {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setMessages([]);
+    window.addEventListener("new-chat", handler);
+    return () => window.removeEventListener("new-chat", handler);
+  }, []);
 
   async function send(question: string) {
     setMessages((m) => [...m, { role: "user", text: question }]);
