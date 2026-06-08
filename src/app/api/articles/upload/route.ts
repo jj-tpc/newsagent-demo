@@ -5,6 +5,7 @@ import type { Article } from "@/lib/articles/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const ID_RE = /^\d{4}-\d{4}$/;
 const IMG_TYPES: Record<string, string> = {
@@ -15,50 +16,59 @@ const IMG_TYPES: Record<string, string> = {
   ".gif":  "image/gif",
 };
 
-/**
- * 다용도 단일 파일 업로드.
- * - .json 확장자 → 기사 JSON. 파싱·필수필드 검증 후 articles/<id>.json 로
- * - 이미지 확장자 → articles/images/<basename> 로
- * 그 외 확장자는 400.
- *
- * 의도적으로 한 요청 = 한 파일. 클라이언트가 다중 선택해도 순차 호출하면
- * Vercel 함수 body 한도(4.5MB) 안에서 안전하게 처리됨.
- */
-export async function POST(req: Request) {
-  const form = await req.formData();
-  const file = form.get("file");
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "file required" }, { status: 400 });
-  }
-  const safe = path.basename(file.name);
-  const ext = path.extname(safe).toLowerCase();
-  const store = getFileStore();
+function jsonError(message: string, status: number, hint?: string): NextResponse {
+  return NextResponse.json({ error: message, ...(hint ? { hint } : {}) }, { status });
+}
 
-  // 환경 진단 — Vercel에 BLOB 토큰 없으면 LocalFs로 폴백되고 그건 Vercel read-only fs에서 EROFS
+/**
+ * 한 요청 = 한 파일.
+ *  .json     → 검증 후 articles/<id>.json
+ *  이미지    → articles/images/<basename>
+ *  그 외     → 400
+ */
+export async function POST(req: Request): Promise<NextResponse> {
   const onVercel = !!process.env.VERCEL;
   const blobTokenPresent = !!process.env.BLOB_READ_WRITE_TOKEN;
-  if (onVercel && !blobTokenPresent) {
-    return NextResponse.json({
-      error:
-        "Vercel 환경인데 BLOB_READ_WRITE_TOKEN 이 설정되지 않았습니다. " +
-        "Vercel 대시보드 → 프로젝트 → Storage 에서 Blob bucket을 만들면 토큰이 자동 주입됩니다.",
-    }, { status: 500 });
-  }
+  const missingTokenHint = onVercel && !blobTokenPresent
+    ? "Vercel 환경인데 BLOB_READ_WRITE_TOKEN 이 없습니다. Vercel 대시보드 → 프로젝트 → Storage 에서 Blob bucket을 만들면 토큰이 자동 주입됩니다. 만든 뒤 Redeploy 필요."
+    : undefined;
 
   try {
+    // formData 파싱 자체가 던질 수 있다 (body 한도 초과·multipart 깨짐 등)
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch (e) {
+      return jsonError(`multipart 파싱 실패: ${(e as Error)?.message ?? e}`, 400, missingTokenHint);
+    }
+
+    const file = form.get("file");
+    if (!(file instanceof File)) {
+      return jsonError("file 필드가 필요합니다", 400, missingTokenHint);
+    }
+
+    if (onVercel && !blobTokenPresent) {
+      // 토큰 없으면 LocalFs로 폴백 → Vercel read-only fs → EROFS 라서 미리 끊는다
+      return jsonError(missingTokenHint!, 500);
+    }
+
+    const safe = path.basename(file.name);
+    const ext = path.extname(safe).toLowerCase();
+    const store = getFileStore();
+
     if (ext === ".json") {
       const text = await file.text();
       let parsed: Partial<Article>;
       try {
         parsed = JSON.parse(text) as Partial<Article>;
-      } catch {
-        return NextResponse.json({ error: "JSON 파싱 실패" }, { status: 400 });
+      } catch (e) {
+        return jsonError(`JSON 파싱 실패: ${(e as Error)?.message ?? e}`, 400);
       }
       if (typeof parsed.id !== "string" || !ID_RE.test(parsed.id)) {
-        return NextResponse.json({ error: "id 형식이 YYYY-NNNN 아님" }, { status: 400 });
+        return jsonError("id 형식이 YYYY-NNNN 아님", 400);
       }
       if (!parsed.title || typeof parsed.title !== "string") {
-        return NextResponse.json({ error: "title 필드가 비어있음" }, { status: 400 });
+        return jsonError("title 필드가 비어있음", 400);
       }
       if (!Array.isArray(parsed.images)) parsed.images = [];
       if (!Array.isArray(parsed.tags)) parsed.tags = [];
@@ -79,16 +89,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ kind: "image", filename: safe });
     }
 
-    return NextResponse.json({ error: `지원하지 않는 확장자: ${ext || "(없음)"}` }, { status: 400 });
+    return jsonError(`지원하지 않는 확장자: ${ext || "(없음)"}`, 400);
   } catch (e) {
-    // 실제 에러 메시지를 클라이언트에 노출 — 무엇이 안 됐는지 보여야 진단 가능
+    // store.write 가 던지는 모든 종류의 에러 (EROFS, BlobError, network 등)
     const message = (e as Error)?.message ?? String(e);
     const code = (e as NodeJS.ErrnoException)?.code;
-    return NextResponse.json({
-      error: code ? `${code}: ${message}` : message,
-      hint: !blobTokenPresent && onVercel
-        ? "BLOB_READ_WRITE_TOKEN 누락 — Vercel Storage에서 Blob bucket 생성 필요"
-        : undefined,
-    }, { status: 500 });
+    const stack = (e as Error)?.stack;
+    const errorString = code ? `${code}: ${message}` : message;
+    console.error("[/api/articles/upload] 실패:", errorString, stack);
+    return jsonError(errorString, 500, missingTokenHint);
   }
 }

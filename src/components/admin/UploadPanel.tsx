@@ -34,12 +34,16 @@ export function UploadPanel({ onDone }: { onDone: () => void }) {
         fd.append("file", files[i]);
         const res = await fetch("/api/articles/upload", { method: "POST", body: fd });
         if (!res.ok) {
-          let detail = `HTTP ${res.status}`;
+          // 응답 body 를 한 번 text로 받아서 — JSON이면 error 필드, 아니면 그대로
+          const raw = await res.text();
+          let detail = raw.slice(0, 200);
           try {
-            const json = await res.json();
-            if (typeof json?.error === "string") detail = json.error;
-          } catch { /* not JSON */ }
-          throw new Error(detail);
+            const json = JSON.parse(raw) as { error?: string; hint?: string };
+            if (typeof json?.error === "string") {
+              detail = json.error + (json.hint ? ` (${json.hint})` : "");
+            }
+          } catch { /* HTML 에러페이지나 빈 본문 — raw 그대로 사용 */ }
+          throw new Error(`HTTP ${res.status} — ${detail || "(빈 응답)"}`);
         }
         setItems((prev) => {
           const next = [...prev];
