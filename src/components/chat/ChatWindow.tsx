@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatResult } from "@/lib/chat/orchestrator";
 import type { UiMessage } from "./types";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PromptCard } from "./PromptCard";
 import { Masthead } from "./Masthead";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const DEMO_PROMPTS = [
   "최근 금리 인상이 가계에 미치는 영향은?",
@@ -16,9 +17,20 @@ const DEMO_PROMPTS = [
 export function ChatWindow() {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [askingReset, setAskingReset] = useState(false);
+
+  // 최신 messages 길이를 ref로 (이벤트 핸들러에서 stale 클로저 회피)
+  const hasMessagesRef = useRef(false);
+  useEffect(() => { hasMessagesRef.current = messages.length > 0; }, [messages.length]);
 
   useEffect(() => {
-    const handler = () => setMessages([]);
+    const handler = () => {
+      if (hasMessagesRef.current) {
+        setAskingReset(true);
+      } else {
+        setMessages([]);
+      }
+    };
     window.addEventListener("new-chat", handler);
     return () => window.removeEventListener("new-chat", handler);
   }, []);
@@ -79,6 +91,17 @@ export function ChatWindow() {
       )}
 
       <Composer onSend={send} disabled={loading} />
+
+      <ConfirmDialog
+        open={askingReset}
+        variant="danger"
+        title="새 채팅 시작"
+        body={<>현재 대화를 비우고 처음부터 시작합니다. 내용은 저장되지 않습니다.</>}
+        confirmLabel="새로 시작"
+        cancelLabel="취소"
+        onConfirm={() => { setMessages([]); setAskingReset(false); }}
+        onCancel={() => setAskingReset(false)}
+      />
     </div>
   );
 }

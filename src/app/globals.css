@@ -257,6 +257,12 @@ button:focus-visible, a:focus-visible {
 .btn--primary:hover { background: var(--accent-hover); }
 .btn--danger { color: var(--danger); border-color: var(--border); }
 .btn--danger:hover { background: color-mix(in oklab, var(--danger) 8%, var(--surface)); }
+.btn--danger-solid {
+  background: var(--danger);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+.btn--danger-solid:hover { background: color-mix(in oklab, var(--danger) 88%, black); }
 .btn--ghost { background: transparent; border-color: transparent; }
 .btn--ghost:hover { background: var(--surface-2); border-color: transparent; }
 .btn--sm { min-height: 36px; padding: 0 var(--space-sm); font-size: var(--text-sm); }

@@ -3,11 +3,13 @@ import { useCallback, useEffect, useState } from "react";
 import type { Article } from "@/lib/articles/types";
 import { ArticleTable } from "@/components/admin/ArticleTable";
 import { ArticleEditor } from "@/components/admin/ArticleEditor";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function AdminPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [editing, setEditing] = useState<Article | undefined>(undefined);
   const [creating, setCreating] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Article | null>(null);
 
   const load = useCallback(() => {
     fetch("/api/articles").then((r) => r.json()).then(setArticles);
@@ -17,10 +19,19 @@ export default function AdminPage() {
     fetch("/api/articles").then((r) => r.json()).then(setArticles);
   }, []);
 
-  async function remove(id: string) {
-    await fetch(`/api/articles/${id}`, { method: "DELETE" });
+  function askDelete(id: string) {
+    const target = articles.find((a) => a.id === id);
+    if (target) setPendingDelete(target);
+  }
+
+  async function confirmDelete() {
+    const target = pendingDelete;
+    if (!target) return;
+    setPendingDelete(null);
+    await fetch(`/api/articles/${target.id}`, { method: "DELETE" });
     load();
   }
+
   function afterSave() { setEditing(undefined); setCreating(false); load(); }
 
   return (
@@ -46,7 +57,7 @@ export default function AdminPage() {
               + 새 기사
             </button>
           </div>
-          <ArticleTable articles={articles} onEdit={setEditing} onDelete={remove} />
+          <ArticleTable articles={articles} onEdit={setEditing} onDelete={askDelete} />
         </>
       )}
       {(editing || creating) && (
@@ -63,6 +74,26 @@ export default function AdminPage() {
           <ArticleEditor initial={editing} onSaved={afterSave} />
         </>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        variant="danger"
+        title="기사 삭제"
+        body={
+          <>
+            <span className="emph" style={{ color: "var(--text-strong)" }}>
+              「{pendingDelete?.title}」
+            </span>
+            을 삭제하시겠습니까?
+            <br />
+            이 작업은 되돌릴 수 없습니다.
+          </>
+        }
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
