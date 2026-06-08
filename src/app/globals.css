@@ -209,6 +209,12 @@ h3 { font-size: var(--text-xl); }
   font-feature-settings: "tnum" 1;
 }
 
+/* —— Dialog 백드롭 (전역) —— */
+dialog::backdrop {
+  background: oklch(0.10 0.012 60 / 0.65);
+  backdrop-filter: blur(2px);
+}
+
 /* —— 폼 요소 베이스 —— */
 input, textarea, select, button { font: inherit; color: inherit; }
 

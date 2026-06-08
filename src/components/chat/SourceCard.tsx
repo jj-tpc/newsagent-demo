@@ -2,10 +2,20 @@ import type { ChatSource } from "@/lib/chat/orchestrator";
 
 export function SourceCard({ source }: { source: ChatSource }) {
   const thumb = source.images[0];
+  const external = Boolean(source.sourceUrl);
+  // sourceUrl 있으면 원문 새 탭, 없으면 (수동 추가된 시드) /admin 페이지로
+  const href = source.sourceUrl ?? `/admin?id=${source.id}`;
   return (
     <a
       className="paper-card"
-      href={`/admin?id=${source.id}`}
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      aria-label={
+        external
+          ? `${source.title} — 원문 새 탭으로 열기`
+          : `${source.title} — 관리 페이지로 이동`
+      }
       style={{
         display: "block",
         padding: "var(--space-xs)",
@@ -65,10 +75,27 @@ export function SourceCard({ source }: { source: ChatSource }) {
         {source.title}
       </div>
       <div
-        className="eyebrow numeric"
-        style={{ marginTop: "var(--space-2xs)" }}
+        style={{
+          display: "flex",
+          gap: "var(--space-xs)",
+          alignItems: "baseline",
+          marginTop: "var(--space-2xs)",
+        }}
       >
-        {source.publishedDate}
+        <span className="eyebrow numeric">{source.publishedDate}</span>
+        {external && (
+          <span
+            aria-hidden
+            style={{
+              fontSize: "var(--text-xs)",
+              color: "var(--text-muted)",
+              marginLeft: "auto",
+            }}
+            title="새 탭으로 열림"
+          >
+            ↗
+          </span>
+        )}
       </div>
     </a>
   );

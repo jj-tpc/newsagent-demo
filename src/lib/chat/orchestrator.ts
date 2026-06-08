@@ -7,6 +7,8 @@ export interface ChatSource {
   title: string;
   publishedDate: string;
   images: { filename: string; caption: string }[];
+  /** 크롤러로 가져온 기사의 원본 URL (있으면 새 탭으로 열어 본문 확인) */
+  sourceUrl?: string;
 }
 export interface ChatResult {
   polishedQuery: string;
@@ -28,7 +30,13 @@ const FALLBACK_MAX_SOURCES = 3;
 const FALLBACK_MAX_IMAGES = 3;
 
 function toSource(a: Article): ChatSource {
-  return { id: a.id, title: a.title, publishedDate: a.publishedDate, images: a.images };
+  return {
+    id: a.id,
+    title: a.title,
+    publishedDate: a.publishedDate,
+    images: a.images,
+    sourceUrl: a.sourceUrl,
+  };
 }
 
 function toContext(a: Article): ArticleContext {

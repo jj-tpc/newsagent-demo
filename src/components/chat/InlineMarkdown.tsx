@@ -1,11 +1,14 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
+import { ImageLightbox, type LightboxImage } from "./ImageLightbox";
 
 // 마크다운 inline 처리:
 //  - ![캡션](파일명) 패턴을 추출
 //  - 연속된 이미지(중간에 공백/빈줄만)들은 하나의 <Gallery>로 묶음
 //  - 그 외는 단락 텍스트로 렌더
+//  - 이미지 클릭 → ImageLightbox 확대 보기
 
-type ImageNode = { caption: string; src: string };
+type ImageNode = LightboxImage;
 type Block =
   | { kind: "text"; text: string }
   | { kind: "gallery"; images: ImageNode[] };
@@ -18,7 +21,6 @@ function resolveSrc(file: string): string {
 }
 
 function parseBlocks(text: string): Block[] {
-  // 1. 텍스트와 이미지 토큰으로 split
   type Token = { kind: "text"; text: string } | { kind: "img"; node: ImageNode };
   const tokens: Token[] = [];
   let last = 0;
@@ -29,7 +31,6 @@ function parseBlocks(text: string): Block[] {
   }
   if (last < text.length) tokens.push({ kind: "text", text: text.slice(last) });
 
-  // 2. 인접한 img 토큰들을 갤러리로 묶음 (사이의 텍스트가 공백/빈줄만이면 같은 그룹)
   const blocks: Block[] = [];
   let pendingGallery: ImageNode[] = [];
   let pendingText = "";
@@ -53,16 +54,12 @@ function parseBlocks(text: string): Block[] {
       flushText();
       pendingGallery.push(t.node);
     } else {
-      // 공백/빈줄만? 그렇다면 갤러리 흐름 유지
-      const isOnlyWhitespace = /^[\s ]*$/.test(t.text);
+      const isOnlyWhitespace = /^[\s ]*$/.test(t.text);
       const isBetweenImages =
         pendingGallery.length > 0 &&
         i + 1 < tokens.length &&
         tokens[i + 1].kind === "img";
-      if (isOnlyWhitespace && isBetweenImages) {
-        // 갤러리 안 공백 — 무시 (현재 갤러리 유지)
-        continue;
-      }
+      if (isOnlyWhitespace && isBetweenImages) continue;
       flushGallery();
       pendingText += t.text;
     }
@@ -74,42 +71,82 @@ function parseBlocks(text: string): Block[] {
 }
 
 export function InlineMarkdown({ text }: { text: string }) {
+  const [lightbox, setLightbox] = useState<ImageNode | null>(null);
   const blocks = parseBlocks(text);
+
   return (
-    <div>
-      {blocks.map((b, i) => {
-        if (b.kind === "text") {
-          return (
-            <span key={i} style={{ whiteSpace: "pre-wrap" }}>
-              {b.text}
-            </span>
-          );
-        }
-        return <Gallery key={i} images={b.images} />;
-      })}
-    </div>
+    <>
+      <div>
+        {blocks.map((b, i) => {
+          if (b.kind === "text") {
+            return (
+              <span key={i} style={{ whiteSpace: "pre-wrap" }}>
+                {b.text}
+              </span>
+            );
+          }
+          return <Gallery key={i} images={b.images} onOpen={setLightbox} />;
+        })}
+      </div>
+      <ImageLightbox image={lightbox} onClose={() => setLightbox(null)} />
+    </>
   );
 }
 
-function Gallery({ images }: { images: ImageNode[] }) {
+const IMAGE_BUTTON_STYLE: React.CSSProperties = {
+  display: "block",
+  width: "100%",
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  cursor: "zoom-in",
+};
+
+function ImageButton({
+  image, onOpen, children,
+}: {
+  image: ImageNode;
+  onOpen: (img: ImageNode) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      style={IMAGE_BUTTON_STYLE}
+      onClick={() => onOpen(image)}
+      aria-label={image.caption ? `${image.caption} 확대 보기` : "이미지 확대 보기"}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Gallery({
+  images, onOpen,
+}: {
+  images: ImageNode[];
+  onOpen: (img: ImageNode) => void;
+}) {
   const n = images.length;
   if (n === 1) {
     const img = images[0];
     return (
       <figure style={{ margin: "var(--space-sm) 0" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={img.src}
-          alt={img.caption}
-          loading="lazy"
-          style={{
-            width: "100%",
-            maxHeight: 360,
-            objectFit: "cover",
-            borderRadius: "var(--radius-md)",
-            display: "block",
-          }}
-        />
+        <ImageButton image={img} onOpen={onOpen}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={img.src}
+            alt={img.caption}
+            loading="lazy"
+            style={{
+              width: "100%",
+              maxHeight: 360,
+              objectFit: "cover",
+              borderRadius: "var(--radius-md)",
+              display: "block",
+            }}
+          />
+        </ImageButton>
         {img.caption && (
           <figcaption
             style={{
@@ -124,7 +161,6 @@ function Gallery({ images }: { images: ImageNode[] }) {
       </figure>
     );
   }
-  // 2장: 좌우 동등, 3장: 1행, 4+장: 2x2 grid
   const cols = n === 2 ? "1fr 1fr" : n === 3 ? "1fr 1fr 1fr" : "1fr 1fr";
   const aspect = n >= 4 ? "16 / 11" : "4 / 3";
   return (
@@ -140,19 +176,21 @@ function Gallery({ images }: { images: ImageNode[] }) {
     >
       {images.map((img, i) => (
         <figure key={i} style={{ margin: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={img.src}
-            alt={img.caption}
-            loading="lazy"
-            style={{
-              width: "100%",
-              aspectRatio: aspect,
-              objectFit: "cover",
-              borderRadius: "var(--radius-md)",
-              display: "block",
-            }}
-          />
+          <ImageButton image={img} onOpen={onOpen}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={img.src}
+              alt={img.caption}
+              loading="lazy"
+              style={{
+                width: "100%",
+                aspectRatio: aspect,
+                objectFit: "cover",
+                borderRadius: "var(--radius-md)",
+                display: "block",
+              }}
+            />
+          </ImageButton>
           {img.caption && (
             <figcaption
               style={{
