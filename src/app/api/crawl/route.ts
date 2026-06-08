@@ -30,7 +30,8 @@ export async function GET(req: Request) {
 
   const pythonBin = process.env.PYTHON_BIN || (process.platform === "win32" ? "py" : "python3");
   const scriptPath = path.join(process.cwd(), "크롤러", "crawl.py");
-  const args = [scriptPath, "--keyword", keyword, "--count", String(count)];
+  // UI에서 실행하면 항상 data/articles/로 저장 → /admin 목록에 바로 표시
+  const args = [scriptPath, "--keyword", keyword, "--count", String(count), "--to-data"];
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

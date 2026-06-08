@@ -127,7 +127,8 @@ export function CrawlerPanel() {
       <h2>뉴스 크롤링</h2>
       <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0, maxWidth: "60ch" }}>
         키워드로 네이버 모바일 뉴스 검색 결과 중 네이버 자체 호스팅 기사를 가져와
-        본문을 정리하고 태그를 붙여 저장합니다.
+        본문을 정리하고 태그를 붙여 저장합니다. 가져온 기사는 곧바로
+        <a href="/admin" style={{ marginLeft: "0.25em" }}>기사 관리</a> 목록에 추가됩니다.
       </p>
 
       <div

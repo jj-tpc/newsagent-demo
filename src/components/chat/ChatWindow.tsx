@@ -75,8 +75,8 @@ export function ChatWindow() {
             <span className="eyebrow">이런 것도 물어보세요</span>
             <div style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "var(--space-sm)",
+              gridTemplateColumns: "minmax(0, 1fr)",
+              gap: "var(--space-xs)",
             }}>
               {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}
             </div>
