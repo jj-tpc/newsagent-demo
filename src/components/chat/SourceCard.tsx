@@ -4,20 +4,18 @@ export function SourceCard({ source }: { source: ChatSource }) {
   const thumb = source.images[0];
   return (
     <a
+      className="paper-card"
       href={`/admin?id=${source.id}`}
       style={{
         display: "block",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--radius-md)",
         padding: "var(--space-xs)",
         textDecoration: "none",
-        color: "var(--text)",
-        minWidth: 180,
-        maxWidth: 220,
-        background: "var(--surface)",
+        flex: "1 1 180px",
+        minWidth: 160,
+        maxWidth: 240,
       }}
     >
-      {thumb && (
+      {thumb ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={`/api/images/${thumb.filename}`}
@@ -31,6 +29,25 @@ export function SourceCard({ source }: { source: ChatSource }) {
             display: "block",
           }}
         />
+      ) : (
+        <div
+          aria-hidden
+          style={{
+            width: "100%",
+            aspectRatio: "16 / 10",
+            background: "var(--surface-sunken)",
+            borderRadius: "var(--radius-sm)",
+            display: "grid",
+            placeItems: "center",
+            color: "var(--text-muted)",
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--text-xs)",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+          }}
+        >
+          기사
+        </div>
       )}
       <div
         style={{
@@ -41,6 +58,10 @@ export function SourceCard({ source }: { source: ChatSource }) {
           marginTop: "var(--space-xs)",
           lineHeight: 1.35,
           color: "var(--text-strong)",
+          display: "-webkit-box",
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
         }}
       >
         {source.title}

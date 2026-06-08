@@ -118,7 +118,7 @@ export default function SettingsPage() {
       <header style={{ display: "grid", gap: "var(--space-2xs)" }}>
         <span className="eyebrow">에디터 도구</span>
         <h1 style={{ margin: 0 }}>설정</h1>
-        <hr className="hairline" style={{ marginTop: "var(--space-xs)" }} />
+        <hr className="hairline" aria-hidden style={{ marginTop: "var(--space-xs)" }} />
       </header>
 
       {statusMsg && (

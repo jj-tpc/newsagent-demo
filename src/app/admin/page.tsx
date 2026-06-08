@@ -60,7 +60,7 @@ export default function AdminPage() {
             <span className="numeric eyebrow">총 {articles.length}건</span>
           )}
         </div>
-        <hr className="hairline" style={{ marginTop: "var(--space-xs)" }} />
+        <hr className="hairline" aria-hidden style={{ marginTop: "var(--space-xs)" }} />
       </header>
 
       {!editing && !creating && (

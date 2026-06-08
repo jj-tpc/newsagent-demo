@@ -143,7 +143,7 @@ export function NavBar() {
               borderRadius: "var(--radius-md)",
               boxShadow: "var(--shadow-md)",
               padding: "var(--space-2xs)",
-              zIndex: 10,
+              zIndex: "var(--z-dropdown)",
             }}
           >
             {ITEMS.map((it, i) => {

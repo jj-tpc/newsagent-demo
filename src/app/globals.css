@@ -72,6 +72,11 @@
   --content-narrow: 760px;
   --content-wide:   960px;
 
+  /* —— z 스케일 (시맨틱) —— */
+  --z-dropdown: 20;
+  --z-sticky:   40;
+  --z-toast:    80;
+
   /* —— 폰트 페어 (next/font가 채워주는 변수) —— */
   --font-display: var(--font-display-myungjo), "Nanum Myeongjo", "Apple SD Gothic Neo", "Malgun Gothic", serif;
   --font-body:    var(--font-body-dodum), "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, sans-serif;
