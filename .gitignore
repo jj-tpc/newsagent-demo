@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# crawler runtime output (keep .gitkeep only)
+크롤러/output/*
+!크롤러/output/.gitkeep
+!크롤러/output/images
+크롤러/output/images/*
+!크롤러/output/images/.gitkeep
+

@@ -4,6 +4,7 @@ import type { ProviderName } from "@/lib/llm/types";
 import type { ModelOption } from "@/lib/llm/models";
 import { ProviderModelPicker } from "@/components/settings/ProviderModelPicker";
 import { PromptEditor } from "@/components/settings/PromptEditor";
+import { CrawlerPanel } from "@/components/settings/CrawlerPanel";
 
 type Catalog = Record<ProviderName, ModelOption[]>;
 type PromptState = { text: string; overridden: boolean };
@@ -90,6 +91,8 @@ export default function SettingsPage() {
           </>
         )}
       </section>
+
+      <CrawlerPanel />
     </div>
   );
 }
