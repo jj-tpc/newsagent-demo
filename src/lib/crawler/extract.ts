@@ -135,12 +135,17 @@ function extractCaptionedImages($: CheerioAPI, body: Cheerio<Element>): RawArtic
 
 export async function fetchArticle(url: string): Promise<RawArticle | null> {
   let resp: Response;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 12_000);  // 12s fetch timeout
   try {
     resp = await fetch(url, {
       headers: { "User-Agent": USER_AGENT, "Accept-Language": "ko-KR,ko;q=0.9" },
+      signal: ac.signal,
     });
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
   if (!resp.ok) return null;
   const html = await resp.text();

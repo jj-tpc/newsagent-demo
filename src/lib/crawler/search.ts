@@ -22,9 +22,17 @@ export async function fetchSearchResults(keyword: string, count: number): Promis
     query: keyword,
   });
   const url = `${SEARCH_URL}?${qs.toString()}`;
-  const resp = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, "Accept-Language": "ko-KR,ko;q=0.9" },
-  });
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 12_000);
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "ko-KR,ko;q=0.9" },
+      signal: ac.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!resp.ok) {
     throw new Error(`search HTTP ${resp.status}`);
   }
