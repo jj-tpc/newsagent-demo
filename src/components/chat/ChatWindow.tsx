@@ -6,6 +6,7 @@ import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PromptCard } from "./PromptCard";
 import { LoadingNote } from "./LoadingNote";
+import { Masthead } from "./Masthead";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const DEMO_PROMPTS = [
@@ -59,13 +60,15 @@ export function ChatWindow() {
       style={{
         maxWidth: "var(--content-narrow)",
         margin: "0 auto",
-        padding: "var(--space-xl) var(--space-md) var(--space-2xl)",
+        padding: "var(--space-lg) var(--space-md) var(--space-2xl)",
         display: "grid",
-        gridTemplateRows: "1fr auto",
+        gridTemplateRows: "auto 1fr auto",
         gap: "var(--space-lg)",
         minHeight: "calc(100dvh - 64px)",
       }}
     >
+      <Masthead />
+
       <div style={{ display: "grid", gap: "var(--space-lg)", alignContent: "start" }}>
         {/* sr-only h1 — 시각은 비우고, 페이지 랜드마크는 유지 */}
         <h1 style={{
