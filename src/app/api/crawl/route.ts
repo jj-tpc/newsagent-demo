@@ -1,18 +1,17 @@
-import { spawn } from "node:child_process";
-import path from "node:path";
+import { runCrawl, type CrawlEvent } from "@/lib/crawler/run";
+import { settingsStore } from "@/lib/config/settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Vercel Hobby 60s 함수 한도 — 5건 안에서 안전하게 처리되도록 count 캡과 같이 사용
+export const maxDuration = 60;
 
 const MAX_KEYWORD = 50;
 const MIN_COUNT = 1;
-const MAX_COUNT = 20;
+const MAX_COUNT = 7;   // Hobby tier 안전 캡
 
-function sseEvent(name: string | null, data: string): string {
-  const lines = [];
-  if (name) lines.push(`event: ${name}`);
-  for (const line of data.split("\n")) lines.push(`data: ${line}`);
-  return lines.join("\n") + "\n\n";
+function sse(event: string, payload: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
 }
 
 export async function GET(req: Request) {
@@ -28,57 +27,64 @@ export async function GET(req: Request) {
     return Response.json({ error: `count must be ${MIN_COUNT}-${MAX_COUNT}` }, { status: 400 });
   }
 
-  const pythonBin = process.env.PYTHON_BIN || (process.platform === "win32" ? "py" : "python3");
-  const scriptPath = path.join(process.cwd(), "크롤러", "crawl.py");
-  // UI에서 실행하면 항상 data/articles/로 저장 → /admin 목록에 바로 표시
-  const args = [scriptPath, "--keyword", keyword, "--count", String(count), "--to-data"];
+  if (!process.env.OPENAI_API_KEY) {
+    return Response.json({ error: "OPENAI_API_KEY not configured" }, { status: 500 });
+  }
+
+  // OpenAI 모델 선택 — 크롤러 정리는 가벼우니 settings의 openai 모델 그대로
+  const settings = await settingsStore.get();
+  const openaiModel = settings.models.openai;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      const proc = spawn(pythonBin, args, {
-        cwd: process.cwd(),
-        env: { ...process.env, PYTHONIOENCODING: "utf-8" },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+    async start(controller) {
+      const sendLine = (text: string) => {
+        // 기존 CrawlerPanel이 받던 raw 로그 라인 — 디버깅용 유지
+        controller.enqueue(encoder.encode(`data: ${text}\n\n`));
+      };
+      const sendEvent = (ev: CrawlEvent) => {
+        controller.enqueue(encoder.encode(sse(ev.type, ev)));
+      };
 
-      let stdoutBuf = "";
-      let stderrBuf = "";
-
-      function emitLines(buf: string, channel: string): string {
-        const parts = buf.split("\n");
-        const tail = parts.pop() ?? "";
-        for (const line of parts) {
-          const prefix = channel === "stderr" ? "[stderr] " : "";
-          controller.enqueue(encoder.encode(sseEvent(null, prefix + line)));
+      try {
+        for await (const ev of runCrawl({ keyword, count, openaiModel })) {
+          sendEvent(ev);
+          // 사람이 읽기 좋은 로그 라인도 같이 — details 토글의 raw 로그용
+          switch (ev.type) {
+            case "started":
+              sendLine(`[config] keyword=${JSON.stringify(ev.keyword)} count=${ev.count}`);
+              break;
+            case "search-done":
+              sendLine(`[search] found ${ev.total} naver-hosted article links`);
+              break;
+            case "fetching":
+              sendLine(`[article] GET ${ev.url}`);
+              break;
+            case "saved":
+              sendLine(`[save] ${ev.id}.json  (images: ${ev.images})`);
+              break;
+            case "skipped":
+              sendLine(`[skip] 이미 저장됨: ${ev.url}`);
+              break;
+            case "failed":
+              sendLine(`[article] FAILED ${ev.url}: ${ev.reason}`);
+              break;
+            case "summary":
+              sendLine(`완료: 성공 ${ev.succeeded}건, 실패 ${ev.failed}건, 중복 제외 ${ev.skipped}건`);
+              break;
+          }
         }
-        return tail;
+        controller.enqueue(encoder.encode(sse("done", { exitCode: 0 })));
+      } catch (e) {
+        const message = (e as Error).message;
+        controller.enqueue(encoder.encode(sse("error", { message })));
+        sendLine(`[stderr] ${message}`);
+      } finally {
+        try { controller.close(); } catch { /* already closed */ }
       }
-
-      proc.stdout.setEncoding("utf-8");
-      proc.stdout.on("data", (chunk: string) => {
-        stdoutBuf = emitLines(stdoutBuf + chunk, "stdout");
-      });
-      proc.stderr.setEncoding("utf-8");
-      proc.stderr.on("data", (chunk: string) => {
-        stderrBuf = emitLines(stderrBuf + chunk, "stderr");
-      });
-
-      proc.on("error", (err) => {
-        controller.enqueue(encoder.encode(sseEvent("error", String(err.message))));
-        try { controller.close(); } catch {}
-      });
-
-      proc.on("close", (code) => {
-        if (stdoutBuf) controller.enqueue(encoder.encode(sseEvent(null, stdoutBuf)));
-        if (stderrBuf) controller.enqueue(encoder.encode(sseEvent(null, "[stderr] " + stderrBuf)));
-        controller.enqueue(encoder.encode(sseEvent("done", JSON.stringify({ exitCode: code ?? -1 }))));
-        try { controller.close(); } catch {}
-      });
-
-      req.signal.addEventListener("abort", () => {
-        if (!proc.killed) proc.kill();
-      });
+    },
+    cancel() {
+      // 클라이언트 abort 시 generator는 자연 종료
     },
   });
 

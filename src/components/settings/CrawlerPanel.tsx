@@ -233,16 +233,16 @@ export function CrawlerPanel() {
         </div>
         <div style={{ display: "grid", gap: "var(--space-2xs)", flex: "0 0 96px" }}>
           <label htmlFor={cntId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-            가져올 기사 수
+            가져올 기사 수 (1–7)
           </label>
           <input
             id={cntId}
             type="number"
             value={count}
-            onChange={(e) => setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+            onChange={(e) => setCount(Math.max(1, Math.min(7, Number(e.target.value) || 1)))}
             disabled={running}
             min={1}
-            max={20}
+            max={7}
           />
         </div>
         <button
