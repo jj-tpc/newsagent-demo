@@ -34,38 +34,61 @@ export async function POST(req: Request) {
   const ext = path.extname(safe).toLowerCase();
   const store = getFileStore();
 
-  if (ext === ".json") {
-    const text = await file.text();
-    let parsed: Partial<Article>;
-    try {
-      parsed = JSON.parse(text) as Partial<Article>;
-    } catch {
-      return NextResponse.json({ error: "JSON 파싱 실패" }, { status: 400 });
-    }
-    if (typeof parsed.id !== "string" || !ID_RE.test(parsed.id)) {
-      return NextResponse.json({ error: "id 형식이 YYYY-NNNN 아님" }, { status: 400 });
-    }
-    if (!parsed.title || typeof parsed.title !== "string") {
-      return NextResponse.json({ error: "title 필드가 비어있음" }, { status: 400 });
-    }
-    if (!Array.isArray(parsed.images)) parsed.images = [];
-    if (!Array.isArray(parsed.tags)) parsed.tags = [];
-    if (typeof parsed.content !== "string") parsed.content = "";
-    if (typeof parsed.publishedDate !== "string") parsed.publishedDate = "";
-
-    await store.write(
-      `articles/${parsed.id}.json`,
-      JSON.stringify(parsed, null, 2),
-      "application/json",
-    );
-    return NextResponse.json({ kind: "article", id: parsed.id });
+  // 환경 진단 — Vercel에 BLOB 토큰 없으면 LocalFs로 폴백되고 그건 Vercel read-only fs에서 EROFS
+  const onVercel = !!process.env.VERCEL;
+  const blobTokenPresent = !!process.env.BLOB_READ_WRITE_TOKEN;
+  if (onVercel && !blobTokenPresent) {
+    return NextResponse.json({
+      error:
+        "Vercel 환경인데 BLOB_READ_WRITE_TOKEN 이 설정되지 않았습니다. " +
+        "Vercel 대시보드 → 프로젝트 → Storage 에서 Blob bucket을 만들면 토큰이 자동 주입됩니다.",
+    }, { status: 500 });
   }
 
-  if (IMG_TYPES[ext]) {
-    const buf = await file.arrayBuffer();
-    await store.write(`articles/images/${safe}`, buf, IMG_TYPES[ext]);
-    return NextResponse.json({ kind: "image", filename: safe });
-  }
+  try {
+    if (ext === ".json") {
+      const text = await file.text();
+      let parsed: Partial<Article>;
+      try {
+        parsed = JSON.parse(text) as Partial<Article>;
+      } catch {
+        return NextResponse.json({ error: "JSON 파싱 실패" }, { status: 400 });
+      }
+      if (typeof parsed.id !== "string" || !ID_RE.test(parsed.id)) {
+        return NextResponse.json({ error: "id 형식이 YYYY-NNNN 아님" }, { status: 400 });
+      }
+      if (!parsed.title || typeof parsed.title !== "string") {
+        return NextResponse.json({ error: "title 필드가 비어있음" }, { status: 400 });
+      }
+      if (!Array.isArray(parsed.images)) parsed.images = [];
+      if (!Array.isArray(parsed.tags)) parsed.tags = [];
+      if (typeof parsed.content !== "string") parsed.content = "";
+      if (typeof parsed.publishedDate !== "string") parsed.publishedDate = "";
 
-  return NextResponse.json({ error: `지원하지 않는 확장자: ${ext || "(없음)"}` }, { status: 400 });
+      await store.write(
+        `articles/${parsed.id}.json`,
+        JSON.stringify(parsed, null, 2),
+        "application/json",
+      );
+      return NextResponse.json({ kind: "article", id: parsed.id });
+    }
+
+    if (IMG_TYPES[ext]) {
+      const buf = await file.arrayBuffer();
+      await store.write(`articles/images/${safe}`, buf, IMG_TYPES[ext]);
+      return NextResponse.json({ kind: "image", filename: safe });
+    }
+
+    return NextResponse.json({ error: `지원하지 않는 확장자: ${ext || "(없음)"}` }, { status: 400 });
+  } catch (e) {
+    // 실제 에러 메시지를 클라이언트에 노출 — 무엇이 안 됐는지 보여야 진단 가능
+    const message = (e as Error)?.message ?? String(e);
+    const code = (e as NodeJS.ErrnoException)?.code;
+    return NextResponse.json({
+      error: code ? `${code}: ${message}` : message,
+      hint: !blobTokenPresent && onVercel
+        ? "BLOB_READ_WRITE_TOKEN 누락 — Vercel Storage에서 Blob bucket 생성 필요"
+        : undefined,
+    }, { status: 500 });
+  }
 }
