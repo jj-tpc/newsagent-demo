@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Article } from "@/lib/articles/types";
 import { ArticleTable } from "@/components/admin/ArticleTable";
 import { ArticleEditor } from "@/components/admin/ArticleEditor";
+import { UploadPanel } from "@/components/admin/UploadPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export default function AdminPage() {
@@ -65,6 +66,7 @@ export default function AdminPage() {
 
       {!editing && !creating && (
         <>
+          <UploadPanel onDone={load} />
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
               + 새 기사

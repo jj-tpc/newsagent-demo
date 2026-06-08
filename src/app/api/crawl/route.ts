@@ -3,12 +3,14 @@ import { settingsStore } from "@/lib/config/settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-// Vercel Hobby 60s 함수 한도 — 5건 안에서 안전하게 처리되도록 count 캡과 같이 사용
+// Vercel Hobby 60s 함수 한도
 export const maxDuration = 60;
 
 const MAX_KEYWORD = 50;
 const MIN_COUNT = 1;
-const MAX_COUNT = 7;   // Hobby tier 안전 캡
+const MAX_COUNT = 7;
+
+const HEARTBEAT_MS = 3000;  // 3초 이상 이벤트 없으면 keep-alive comment
 
 function sse(event: string, payload: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
@@ -31,25 +33,28 @@ export async function GET(req: Request) {
     return Response.json({ error: "OPENAI_API_KEY not configured" }, { status: 500 });
   }
 
-  // OpenAI 모델 선택 — 크롤러 정리는 가벼우니 settings의 openai 모델 그대로
   const settings = await settingsStore.get();
   const openaiModel = settings.models.openai;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const sendLine = (text: string) => {
-        // 기존 CrawlerPanel이 받던 raw 로그 라인 — 디버깅용 유지
-        controller.enqueue(encoder.encode(`data: ${text}\n\n`));
+      let closed = false;
+      const safeEnqueue = (s: string) => {
+        if (closed) return;
+        try { controller.enqueue(encoder.encode(s)); }
+        catch { closed = true; }
       };
-      const sendEvent = (ev: CrawlEvent) => {
-        controller.enqueue(encoder.encode(sse(ev.type, ev)));
-      };
+      const sendLine = (text: string) => safeEnqueue(`data: ${text}\n\n`);
+      const sendEvent = (ev: CrawlEvent) => safeEnqueue(sse(ev.type, ev));
+
+      // SSE keep-alive — 일정 시간 이벤트 없으면 ":heartbeat" comment 발화.
+      // 클라이언트 EventSource는 comment를 무시하지만 프록시는 살아있다고 인식.
+      const heartbeat = setInterval(() => safeEnqueue(`:hb ${Date.now()}\n\n`), HEARTBEAT_MS);
 
       try {
         for await (const ev of runCrawl({ keyword, count, openaiModel })) {
           sendEvent(ev);
-          // 사람이 읽기 좋은 로그 라인도 같이 — details 토글의 raw 로그용
           switch (ev.type) {
             case "started":
               sendLine(`[config] keyword=${JSON.stringify(ev.keyword)} count=${ev.count}`);
@@ -59,6 +64,9 @@ export async function GET(req: Request) {
               break;
             case "fetching":
               sendLine(`[article] GET ${ev.url}`);
+              break;
+            case "phase":
+              sendLine(`[phase] ${ev.phase}`);
               break;
             case "saved":
               sendLine(`[save] ${ev.id}.json  (images: ${ev.images})`);
@@ -74,12 +82,14 @@ export async function GET(req: Request) {
               break;
           }
         }
-        controller.enqueue(encoder.encode(sse("done", { exitCode: 0 })));
+        safeEnqueue(sse("done", { exitCode: 0 }));
       } catch (e) {
         const message = (e as Error).message;
-        controller.enqueue(encoder.encode(sse("error", { message })));
+        safeEnqueue(sse("error", { message }));
         sendLine(`[stderr] ${message}`);
       } finally {
+        clearInterval(heartbeat);
+        closed = true;
         try { controller.close(); } catch { /* already closed */ }
       }
     },
@@ -93,6 +103,8 @@ export async function GET(req: Request) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      // Vercel proxy + nginx류에 SSE 버퍼링 끄기 힌트
+      "X-Accel-Buffering": "no",
     },
   });
 }

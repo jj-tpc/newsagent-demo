@@ -13,6 +13,7 @@ export type CrawlEvent =
   | { type: "search-done"; total: number }
   | { type: "skipped"; url: string; reason: "duplicate" }
   | { type: "fetching"; url: string }
+  | { type: "phase"; url: string; phase: "본문 정리 중" | "이미지 저장 중" }
   | { type: "saved"; id: string; sourceUrl: string; images: number; title: string }
   | { type: "failed"; url: string; reason: string }
   | { type: "summary"; succeeded: number; failed: number; skipped: number };
@@ -46,8 +47,10 @@ async function downloadAndSaveImages(
   const saved: { filename: string; caption: string }[] = [];
   for (let i = 0; i < images.length; i += 1) {
     const img = images[i];
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 10_000);
     try {
-      const resp = await fetch(img.src);
+      const resp = await fetch(img.src, { signal: ac.signal });
       if (!resp.ok) continue;
       const ct = resp.headers.get("content-type");
       const ext = inferExtension(img.src, ct);
@@ -62,6 +65,8 @@ async function downloadAndSaveImages(
       await sleep(REQUEST_DELAY_MS);
     } catch {
       // 이미지 1장 실패는 기사 자체 실패로 만들지 않음
+    } finally {
+      clearTimeout(timer);
     }
   }
   return saved;
@@ -109,6 +114,7 @@ export async function* runCrawl(opts: RunOptions): AsyncGenerator<CrawlEvent> {
       continue;
     }
 
+    yield { type: "phase", url, phase: "본문 정리 중" };
     let cleaned;
     try {
       cleaned = await cleanupArticle(raw.bodyText, keyword, openaiModel);
@@ -119,6 +125,7 @@ export async function* runCrawl(opts: RunOptions): AsyncGenerator<CrawlEvent> {
     }
 
     const id = await nextId(store);
+    yield { type: "phase", url, phase: "이미지 저장 중" };
     const savedImages = await downloadAndSaveImages(id, raw.images);
 
     const article: Article = {

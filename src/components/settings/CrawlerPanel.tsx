@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type ItemStatus = "running" | "done" | "failed" | "skipped";
-type Item = { url: string; status: ItemStatus; savedAs?: string; imageCount?: number };
+type Item = { url: string; status: ItemStatus; savedAs?: string; imageCount?: number; phaseHint?: string };
 type Phase = "idle" | "searching" | "processing" | "done";
 type CrawledStats = { articles: number; images: number };
 
@@ -74,7 +74,22 @@ export function CrawlerPanel() {
     const fetchM = line.match(/\[article\] GET (\S+)/);
     if (fetchM) {
       const url = fetchM[1];
-      setItems((prev) => [...prev, { url, status: "running" }]);
+      setItems((prev) => [...prev, { url, status: "running", phaseHint: "가져오는 중" }]);
+      return;
+    }
+    const phaseM = line.match(/^\[phase\] (.+)$/);
+    if (phaseM) {
+      const phaseHint = phaseM[1];
+      setItems((prev) => {
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i -= 1) {
+          if (next[i].status === "running") {
+            next[i] = { ...next[i], phaseHint };
+            return next;
+          }
+        }
+        return next;
+      });
       return;
     }
     const saveM = line.match(/\[save\] (\S+\.json)\s+\(images: (\d+)/);
@@ -449,7 +464,7 @@ function ProgressRow({ index, item }: { index: number; item: Item }) {
         className="eyebrow"
         style={{ color, fontSize: "var(--text-xs)" }}
       >
-        {STATUS_LABEL[item.status]}
+        {item.status === "running" && item.phaseHint ? item.phaseHint : STATUS_LABEL[item.status]}
       </span>
     </li>
   );
