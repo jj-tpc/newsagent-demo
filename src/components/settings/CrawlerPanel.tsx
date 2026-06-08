@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 export function CrawlerPanel() {
   const [keyword, setKeyword] = useState("홍명보");
@@ -8,6 +8,8 @@ export function CrawlerPanel() {
   const [logs, setLogs] = useState<string[]>([]);
   const logRef = useRef<HTMLPreElement>(null);
   const esRef = useRef<EventSource | null>(null);
+  const kwId = useId();
+  const cntId = useId();
 
   useEffect(() => {
     if (logRef.current) {
@@ -52,60 +54,68 @@ export function CrawlerPanel() {
   }
 
   return (
-    <section style={{ display: "grid", gap: 8 }}>
-      <h3>뉴스 크롤링</h3>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <label>
-          키워드{" "}
+    <section style={{ display: "grid", gap: "var(--space-md)" }}>
+      <h2>뉴스 크롤링</h2>
+      <div
+        style={{
+          display: "grid",
+          gap: "var(--space-sm)",
+          gridTemplateColumns: "minmax(0, 1fr) 100px auto",
+          alignItems: "end",
+        }}
+      >
+        <div style={{ display: "grid", gap: "var(--space-2xs)", minWidth: 0 }}>
+          <label htmlFor={kwId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+            키워드
+          </label>
           <input
+            id={kwId}
             type="text"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             disabled={running}
             maxLength={50}
-            style={{ padding: 6, border: "1px solid #ccc", borderRadius: 6, minWidth: 200 }}
           />
-        </label>
-        <label>
-          개수{" "}
+        </div>
+        <div style={{ display: "grid", gap: "var(--space-2xs)" }}>
+          <label htmlFor={cntId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+            개수
+          </label>
           <input
+            id={cntId}
             type="number"
             value={count}
             onChange={(e) => setCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
             disabled={running}
             min={1}
             max={20}
-            style={{ padding: 6, border: "1px solid #ccc", borderRadius: 6, width: 64 }}
           />
-        </label>
+        </div>
         <button
+          type="button"
+          className="btn btn--primary"
           onClick={run}
           disabled={running}
-          style={{
-            padding: "6px 14px",
-            border: "1px solid #ddd",
-            borderRadius: 6,
-            background: running ? "#f3f4f6" : "#fff",
-            cursor: running ? "not-allowed" : "pointer",
-          }}
         >
           {running ? "실행 중…" : "크롤링 실행"}
         </button>
       </div>
       <pre
         ref={logRef}
+        aria-live="polite"
+        aria-label="크롤링 로그"
         style={{
           margin: 0,
-          padding: 10,
-          height: 260,
+          padding: "var(--space-sm) var(--space-md)",
+          height: 280,
           overflow: "auto",
-          background: "#0f172a",
-          color: "#e2e8f0",
-          border: "1px solid #334155",
-          borderRadius: 6,
-          fontSize: 12,
-          lineHeight: 1.5,
-          fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+          background: "var(--surface-code)",
+          color: "var(--text-on-code)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-md)",
+          fontSize: "var(--text-xs)",
+          lineHeight: 1.55,
+          fontFamily: "var(--font-mono)",
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",
         }}

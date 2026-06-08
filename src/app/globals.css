@@ -1,49 +1,224 @@
+/* ============================================================
+   디자인 토큰 — Editorial / 신문지 톤
+   - 라이트: 따뜻한 오프화이트(newsprint) + 와인 액센트
+   - 다크: 따뜻한 near-black + 약간 채도 낮춘 와인
+   - 모든 색은 OKLCH (지각 균일). 콘트라스트 AA(4.5:1) 이상 보장.
+   ============================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* —— 표면 (surface) —— */
+  --surface:        oklch(0.985 0.005 75);   /* 종이 같은 오프화이트 */
+  --surface-2:      oklch(0.96  0.006 75);   /* 살짝 더 진한 패널 */
+  --surface-sunken: oklch(0.93  0.008 75);   /* 입력칸/구분 영역 */
+  --surface-code:   oklch(0.20  0.015 60);   /* 로그/코드 박스 (다크 톤) */
+
+  /* —— 텍스트 —— */
+  --text:           oklch(0.22 0.012 50);    /* 본문. AA 통과 */
+  --text-strong:    oklch(0.14 0.015 50);    /* 강조/제목 */
+  --text-muted:     oklch(0.46 0.012 50);    /* 보조. 흰배경 4.6:1 */
+  --text-on-accent: oklch(0.99 0.005 75);    /* 액센트 위 텍스트 */
+  --text-on-code:   oklch(0.92 0.005 60);    /* 코드 박스 위 */
+
+  /* —— 보더 —— */
+  --border:         oklch(0.88 0.008 60);
+  --border-strong:  oklch(0.78 0.010 60);
+
+  /* —— 액센트 (editorial wine/red) —— */
+  --accent:         oklch(0.47 0.16 25);     /* 대비 5.9:1 on surface */
+  --accent-hover:   oklch(0.42 0.17 25);
+  --accent-soft:    oklch(0.94 0.04 25);     /* 사용자 말풍선 배경 */
+
+  /* —— 시맨틱 —— */
+  --info:           oklch(0.50 0.13 240);
+  --success:        oklch(0.48 0.13 150);
+  --warning:        oklch(0.55 0.14 70);
+  --danger:         oklch(0.50 0.18 25);
+
+  /* —— 포커스 —— */
+  --focus-ring:     oklch(0.55 0.18 240 / 0.6);
+
+  /* —— 간격 (4pt scale) —— */
+  --space-2xs: 4px;
+  --space-xs:  8px;
+  --space-sm:  12px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* —— 라운드 —— */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* —— 타입 스케일 —— */
+  --text-xs:   12px;
+  --text-sm:   13px;
+  --text-base: 16px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  36px;
+
+  /* —— 그림자 (절제) —— */
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 50 / 0.06);
+  --shadow-md: 0 4px 14px oklch(0.2 0.01 50 / 0.08);
+
+  /* —— 컨테이너 —— */
+  --content-narrow: 760px;
+  --content-wide:   960px;
+
+  /* —— 폰트 페어 (next/font가 채워주는 변수) —— */
+  --font-display: var(--font-display-myungjo), "Nanum Myeongjo", "Apple SD Gothic Neo", "Malgun Gothic", serif;
+  --font-body:    var(--font-body-dodum), "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, sans-serif;
+  --font-mono:    var(--font-geist-mono), ui-monospace, "SF Mono", Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface:        oklch(0.18 0.008 60);
+    --surface-2:      oklch(0.22 0.008 60);
+    --surface-sunken: oklch(0.14 0.008 60);
+    --surface-code:   oklch(0.12 0.010 60);
+
+    --text:           oklch(0.93 0.008 60);
+    --text-strong:    oklch(0.99 0.005 60);
+    --text-muted:     oklch(0.70 0.010 60);   /* 다크에서 5.4:1 */
+    --text-on-accent: oklch(0.99 0.005 75);
+    --text-on-code:   oklch(0.88 0.008 60);
+
+    --border:         oklch(0.32 0.010 60);
+    --border-strong:  oklch(0.42 0.012 60);
+
+    --accent:         oklch(0.70 0.15 25);
+    --accent-hover:   oklch(0.78 0.15 25);
+    --accent-soft:    oklch(0.32 0.07 25);
+
+    --info:           oklch(0.72 0.12 240);
+    --success:        oklch(0.72 0.13 150);
+    --warning:        oklch(0.78 0.14 70);
+    --danger:         oklch(0.72 0.17 25);
+
+    --focus-ring:     oklch(0.75 0.15 240 / 0.7);
+
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+    --shadow-md: 0 6px 18px oklch(0 0 0 / 0.5);
   }
 }
 
-html {
-  height: 100%;
-}
+/* ============================================================
+   기초 리셋 / 베이스
+   ============================================================ */
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
+html { color-scheme: light dark; height: 100%; }
+
+* { box-sizing: border-box; padding: 0; margin: 0; }
 
 body {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-* {
-  box-sizing: border-box;
+main, .page { flex: 1; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* —— 제목 —— */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  color: var(--text-strong);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+
+/* —— 폼 요소 베이스 —— */
+input, textarea, select, button { font: inherit; color: inherit; }
+
+input, textarea, select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  min-height: 44px;
+  width: 100%;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+textarea { min-height: unset; resize: vertical; line-height: 1.55; }
+input:hover, textarea:hover, select:hover { border-color: var(--border-strong); }
+
+/* —— 포커스 (전역) —— */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* —— 버튼 위계: .btn 기본은 ghost, modifier로 primary/secondary/danger —— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn--primary {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+.btn--primary:hover { background: var(--accent-hover); }
+.btn--danger { color: var(--danger); border-color: var(--border); }
+.btn--danger:hover { background: color-mix(in oklab, var(--danger) 8%, var(--surface)); }
+.btn--ghost { background: transparent; border-color: transparent; }
+.btn--ghost:hover { background: var(--surface-2); border-color: transparent; }
+.btn--sm { min-height: 36px; padding: 0 var(--space-sm); font-size: var(--text-sm); }
+.btn--icon {
+  min-width: 44px;
   padding: 0;
-  margin: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* —— 카드 / 패널 —— */
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+/* —— 줄어든 모션 존중 —— */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

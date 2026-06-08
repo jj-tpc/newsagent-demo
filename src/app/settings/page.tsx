@@ -60,12 +60,38 @@ export default function SettingsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: 16, display: "grid", gap: 24 }}>
-      <h2>설정</h2>
-      {savedMsg && <div style={{ color: "#16a34a" }}>{savedMsg}</div>}
+    <div
+      style={{
+        maxWidth: "var(--content-narrow)",
+        margin: "0 auto",
+        padding: "var(--space-lg) var(--space-md)",
+        display: "grid",
+        gap: "var(--space-2xl)",
+      }}
+    >
+      <header>
+        <h1>설정</h1>
+      </header>
 
-      <section>
-        <h3>LLM 프로바이더 / 모델</h3>
+      {savedMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            color: "var(--success)",
+            fontSize: "var(--text-sm)",
+            background: "color-mix(in oklab, var(--success) 12%, var(--surface))",
+            border: "1px solid color-mix(in oklab, var(--success) 30%, var(--border))",
+            padding: "var(--space-xs) var(--space-sm)",
+            borderRadius: "var(--radius-md)",
+          }}
+        >
+          {savedMsg}
+        </div>
+      )}
+
+      <section style={{ display: "grid", gap: "var(--space-md)" }}>
+        <h2>LLM 프로바이더 / 모델</h2>
         {catalog && (
           <ProviderModelPicker
             provider={provider} models={models} catalog={catalog}
@@ -73,13 +99,17 @@ export default function SettingsPage() {
             onModel={(id) => setModels({ ...models, [provider]: id })}
           />
         )}
-        <div style={{ marginTop: 8 }}><button onClick={saveSettings}>설정 저장</button></div>
+        <div>
+          <button type="button" className="btn btn--primary" onClick={saveSettings}>
+            설정 저장
+          </button>
+        </div>
       </section>
 
-      <section style={{ display: "grid", gap: 16 }}>
-        <h3>프롬프트</h3>
+      <section style={{ display: "grid", gap: "var(--space-md)" }}>
+        <h2>프롬프트</h2>
         {prompts && (
-          <>
+          <div style={{ display: "grid", gap: "var(--space-lg)" }}>
             <PromptEditor title="검색/선택 프롬프트 (select)" value={prompts.select.text}
               overridden={prompts.select.overridden}
               onChange={(t) => setPrompts({ ...prompts, select: { ...prompts.select, text: t } })}
@@ -88,7 +118,7 @@ export default function SettingsPage() {
               overridden={prompts.answer.overridden}
               onChange={(t) => setPrompts({ ...prompts, answer: { ...prompts.answer, text: t } })}
               onSave={() => savePrompt("answer")} onReset={() => resetPrompt("answer")} />
-          </>
+          </div>
         )}
       </section>
 

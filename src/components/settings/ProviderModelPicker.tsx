@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { ProviderName } from "@/lib/llm/types";
 import type { ModelOption } from "@/lib/llm/models";
 
@@ -12,24 +13,41 @@ export function ProviderModelPicker({
   onProvider: (p: ProviderName) => void;
   onModel: (id: string) => void;
 }) {
+  const providerId = useId();
+  const modelId = useId();
   return (
-    <div style={{ display: "grid", gap: 8, maxWidth: 360 }}>
-      <label>
-        프로바이더{" "}
-        <select value={provider} onChange={(e) => onProvider(e.target.value as ProviderName)}>
+    <div
+      style={{
+        display: "grid",
+        gap: "var(--space-sm)",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        maxWidth: 520,
+      }}
+    >
+      <div style={{ display: "grid", gap: "var(--space-2xs)" }}>
+        <label htmlFor={providerId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+          프로바이더
+        </label>
+        <select
+          id={providerId}
+          value={provider}
+          onChange={(e) => onProvider(e.target.value as ProviderName)}
+        >
           {(Object.keys(LABELS) as ProviderName[]).map((p) => (
             <option key={p} value={p}>{LABELS[p]}</option>
           ))}
         </select>
-      </label>
-      <label>
-        모델{" "}
-        <select value={models[provider]} onChange={(e) => onModel(e.target.value)}>
+      </div>
+      <div style={{ display: "grid", gap: "var(--space-2xs)" }}>
+        <label htmlFor={modelId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+          모델
+        </label>
+        <select id={modelId} value={models[provider]} onChange={(e) => onModel(e.target.value)}>
           {catalog[provider].map((m) => (
             <option key={m.id} value={m.id}>{m.label}</option>
           ))}
         </select>
-      </label>
+      </div>
     </div>
   );
 }

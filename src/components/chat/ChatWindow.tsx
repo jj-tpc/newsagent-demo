@@ -42,16 +42,45 @@ export function ChatWindow() {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: 16 }}>
-      <h2>신문 에이전트</h2>
+    <div
+      style={{
+        maxWidth: "var(--content-narrow)",
+        margin: "0 auto",
+        padding: "var(--space-lg) var(--space-md)",
+        display: "grid",
+        gap: "var(--space-lg)",
+      }}
+    >
+      <header>
+        <h1>신문 에이전트</h1>
+        <p style={{ color: "var(--text-muted)", marginTop: "var(--space-2xs)" }}>
+          오늘 모은 기사에서 답을 찾아드립니다.
+        </p>
+      </header>
+
       {messages.length === 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, margin: "16px 0" }}>
+        <section aria-label="추천 질문" style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "var(--space-sm)",
+        }}>
           {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}
+        </section>
+      )}
+
+      <MessageList messages={messages} />
+
+      {loading && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)" }}
+        >
+          답변 생성 중…
         </div>
       )}
-      <MessageList messages={messages} />
-      {loading && <div style={{ color: "#888" }}>답변 생성 중…</div>}
-      <div style={{ marginTop: 12 }}><Composer onSend={send} disabled={loading} /></div>
+
+      <Composer onSend={send} disabled={loading} />
     </div>
   );
 }
