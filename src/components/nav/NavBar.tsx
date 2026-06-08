@@ -132,6 +132,7 @@ export function NavBar() {
             role="menu"
             aria-label="페이지 이동"
             onKeyDown={onMenuKey}
+            className="enter-up"
             style={{
               position: "absolute",
               top: "calc(100% + 6px)",

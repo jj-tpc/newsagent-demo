@@ -299,6 +299,7 @@ function ProgressRow({ index, item }: { index: number; item: Item }) {
   const short = item.url.replace(/^https?:\/\//, "").replace(/\?.*/, "");
   return (
     <li
+      className="enter-up"
       style={{
         display: "grid",
         gridTemplateColumns: "auto 1fr auto",

@@ -14,6 +14,7 @@ export function MessageBubble({ msg, topGap = "sm" }: { msg: UiMessage; topGap?:
   const isUser = msg.role === "user";
   return (
     <div
+      className="enter-up"
       style={{
         display: "flex",
         justifyContent: isUser ? "flex-end" : "flex-start",

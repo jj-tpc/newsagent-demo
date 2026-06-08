@@ -278,10 +278,38 @@ button:focus-visible, a:focus-visible {
   border-radius: var(--radius-md);
 }
 
+/* —— 진입 페이드 (편집국 톤 — 절제) —— */
+@keyframes enter-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.enter-up {
+  animation: enter-up 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* —— 인쇄물 카드 호버 — 미세 표면 변화만 (들썩임 금지) —— */
+.paper-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.paper-card:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+.paper-card:focus-visible {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
 /* —— 줄어든 모션 존중 —— */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+  .enter-up { animation: none; }
 }

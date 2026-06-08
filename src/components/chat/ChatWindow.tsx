@@ -6,6 +6,7 @@ import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
 import { PromptCard } from "./PromptCard";
 import { Masthead } from "./Masthead";
+import { LoadingNote } from "./LoadingNote";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const DEMO_PROMPTS = [
@@ -84,15 +85,7 @@ export function ChatWindow() {
 
         <MessageList messages={messages} />
 
-        {loading && (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)" }}
-          >
-            답변 생성 중…
-          </div>
-        )}
+        {loading && <LoadingNote />}
       </div>
 
       <Composer onSend={send} disabled={loading} />
