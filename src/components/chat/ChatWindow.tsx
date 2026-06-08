@@ -69,12 +69,15 @@ export function ChatWindow() {
       <hr className="hairline" />
 
       {messages.length === 0 && (
-        <section aria-label="추천 질문" style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "var(--space-sm)",
-        }}>
-          {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}
+        <section aria-label="추천 질문" style={{ display: "grid", gap: "var(--space-sm)" }}>
+          <span className="eyebrow">이런 것도 물어보세요</span>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "var(--space-sm)",
+          }}>
+            {DEMO_PROMPTS.map((p) => <PromptCard key={p} text={p} onPick={send} />)}
+          </div>
         </section>
       )}
 

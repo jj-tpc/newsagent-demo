@@ -26,7 +26,7 @@ export function ProviderModelPicker({
     >
       <div style={{ display: "grid", gap: "var(--space-2xs)" }}>
         <label htmlFor={providerId} style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
-          프로바이더
+          제공사
         </label>
         <select
           id={providerId}

@@ -7,14 +7,31 @@ export function ArticleTable({ articles, onEdit, onDelete }: {
     return (
       <div
         style={{
-          padding: "var(--space-xl) var(--space-md)",
+          padding: "var(--space-2xl) var(--space-md)",
+          display: "grid",
+          gap: "var(--space-xs)",
+          justifyItems: "center",
           textAlign: "center",
-          color: "var(--text-muted)",
-          border: "1px dashed var(--border)",
+          border: "1px solid var(--border)",
           borderRadius: "var(--radius-md)",
+          background: "var(--surface-2)",
         }}
       >
-        등록된 기사가 없습니다.
+        <span className="eyebrow">아직 기사 없음</span>
+        <p style={{
+          fontFamily: "var(--font-display)",
+          fontSize: "var(--text-xl)",
+          color: "var(--text-strong)",
+          margin: 0,
+          maxWidth: "30ch",
+          lineHeight: 1.4,
+        }}>
+          편집국이 비어 있습니다
+        </p>
+        <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0, maxWidth: "42ch" }}>
+          위의 <b className="emph">+ 새 기사</b>로 직접 추가하거나, 설정 페이지의
+          뉴스 크롤링으로 키워드를 검색해 채울 수 있습니다.
+        </p>
       </div>
     );
   }
