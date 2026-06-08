@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import path from "node:path";
-import { getFileStore } from "@/lib/storage";
+import { getFileStore, shouldUseBlob } from "@/lib/storage";
 import type { Article } from "@/lib/articles/types";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +28,9 @@ function jsonError(message: string, status: number, hint?: string): NextResponse
  */
 export async function POST(req: Request): Promise<NextResponse> {
   const onVercel = !!process.env.VERCEL;
-  const blobTokenPresent = !!process.env.BLOB_READ_WRITE_TOKEN;
-  const missingTokenHint = onVercel && !blobTokenPresent
-    ? "Vercel 환경인데 BLOB_READ_WRITE_TOKEN 이 없습니다. Vercel 대시보드 → 프로젝트 → Storage 에서 Blob bucket을 만들면 토큰이 자동 주입됩니다. 만든 뒤 Redeploy 필요."
+  const usingBlob = shouldUseBlob();
+  const missingTokenHint = onVercel && !usingBlob
+    ? "Vercel 환경인데 Blob 인증 정보가 없습니다 — BLOB_READ_WRITE_TOKEN 또는 BLOB_STORE_ID 환경변수가 필요. Vercel 대시보드 → 프로젝트 → Storage 에서 Blob bucket을 만들고 'Connect Project'로 환경변수 주입 후 Redeploy 하세요."
     : undefined;
 
   try {
@@ -47,8 +47,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       return jsonError("file 필드가 필요합니다", 400, missingTokenHint);
     }
 
-    if (onVercel && !blobTokenPresent) {
-      // 토큰 없으면 LocalFs로 폴백 → Vercel read-only fs → EROFS 라서 미리 끊는다
+    if (onVercel && !usingBlob) {
+      // Blob 인증 없으면 LocalFs 폴백 → Vercel read-only fs → EROFS 라서 미리 끊는다
       return jsonError(missingTokenHint!, 500);
     }
 
@@ -99,4 +99,15 @@ export async function POST(req: Request): Promise<NextResponse> {
     console.error("[/api/articles/upload] 실패:", errorString, stack);
     return jsonError(errorString, 500, missingTokenHint);
   }
+}
+
+// 디버깅용 — 환경 분기가 맞는지 한눈에 확인
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json({
+    onVercel: !!process.env.VERCEL,
+    usingBlob: shouldUseBlob(),
+    hasReadWriteToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+    hasStoreId: !!process.env.BLOB_STORE_ID,
+    cwd: process.cwd(),
+  });
 }
