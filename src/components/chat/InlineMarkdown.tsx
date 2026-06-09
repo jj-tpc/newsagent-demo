@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ImageLightbox, type LightboxImage } from "./ImageLightbox";
 import { stripEmoji } from "@/lib/chat/strip-emoji";
 
@@ -16,6 +17,17 @@ type Block =
   | { kind: "gallery"; images: ImageNode[] };
 
 const IMG_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+// LLM이 종종 강조 기호 안쪽에 공백을 넣어 `** 굵게 **`로 출력하는데,
+// CommonMark는 여는 `**` 뒤·닫는 `**` 앞에 공백이 있으면 강조로 보지 않는다.
+// 짝이 맞는 `**…**` 안쪽 공백만 다듬어 정상 볼드로 복원한다.
+const SPACED_STRONG_RE = /\*\*([^*]+?)\*\*/g;
+
+function normalizeStrong(s: string): string {
+  return s.replace(SPACED_STRONG_RE, (whole, inner: string) => {
+    const trimmed = inner.trim();
+    return trimmed ? `**${trimmed}**` : whole;
+  });
+}
 
 function resolveSrc(file: string): string {
   if (file.startsWith("http")) return file;
@@ -23,7 +35,7 @@ function resolveSrc(file: string): string {
 }
 
 function parseBlocks(raw: string): Block[] {
-  const text = stripEmoji(raw);
+  const text = normalizeStrong(stripEmoji(raw));
   type Token = { kind: "text"; text: string } | { kind: "img"; node: ImageNode };
   const tokens: Token[] = [];
   let last = 0;
@@ -85,8 +97,16 @@ const MD_COMPONENTS: Components = {
   li: (props) => <li className="md-li" {...props} />,
   strong: (props) => <strong className="emph" {...props} />,
   em: (props) => <em className="md-em" {...props} />,
+  del: (props) => <del className="md-del" {...props} />,
   blockquote: (props) => <blockquote className="md-blockquote" {...props} />,
   code: (props) => <code className="md-code" {...props} />,
+  table: (props) => (
+    <div className="md-table-wrap">
+      <table className="md-table" {...props} />
+    </div>
+  ),
+  th: (props) => <th className="md-th" {...props} />,
+  td: (props) => <td className="md-td" {...props} />,
   a: ({ href, ...rest }) => (
     <a
       href={href}
@@ -107,7 +127,7 @@ export function InlineMarkdown({ text }: { text: string }) {
         {blocks.map((b, i) => {
           if (b.kind === "text") {
             return (
-              <ReactMarkdown key={i} components={MD_COMPONENTS}>
+              <ReactMarkdown key={i} components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
                 {b.text}
               </ReactMarkdown>
             );

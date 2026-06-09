@@ -11,9 +11,9 @@ import { Masthead } from "./Masthead";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const DEMO_PROMPTS = [
-  "최근 금리 인상이 가계에 미치는 영향은?",
-  "이번 주 가장 중요한 경제 뉴스 요약해줘",
-  "AI 관련 정책 동향이 궁금해",
+  "홍명보 감독을 집중으로 다룬 기사를 찾아주세요.",
+  "기사를 바탕으로 홍명보 감독에 대한 관점이 과거 -> 현재 어떻게 달라졌는지 알려주세요.",
+  "홍명보 감독의 휴먼스토리를 찾아서 특이점을 알려주세요.",
 ];
 
 export function ChatWindow() {

@@ -268,6 +268,30 @@ dialog::backdrop {
 
 .md-em { font-style: italic; }
 
+.md-del { color: var(--text-muted); text-decoration: line-through; }
+
+/* GFM 표 — 좁은 버블에서 넘치면 가로 스크롤 */
+.md-table-wrap { overflow-x: auto; scrollbar-width: thin; }
+.md-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.md-th, .md-td {
+  border: 1px solid var(--border);
+  padding: var(--space-2xs) var(--space-xs);
+  text-align: left;
+  vertical-align: top;
+}
+.md-th {
+  background: var(--surface-sunken);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
 .md-blockquote {
   padding: var(--space-xs) var(--space-md);
   color: var(--text-muted);
